@@ -1,0 +1,414 @@
+'use client';
+import { useState } from 'react';
+import { useForm, useFieldArray } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { doc, writeBatch, collection } from 'firebase/firestore';
+import Image from 'next/image';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { useFirestore } from '@/firebase';
+import { Loader2, PlusCircle, Trash2, User as UserIcon } from 'lucide-react';
+import { ScrollArea } from '../ui/scroll-area';
+import { Separator } from '../ui/separator';
+
+const parentSchema = z.object({
+  firstName: z.string().min(1, 'El nombre es requerido.'),
+  lastName: z.string().min(1, 'El apellido es requerido.'),
+  email: z.string().email('Email inválido.'),
+});
+
+const formSchema = z.object({
+  firstName: z.string().min(1, 'El nombre es requerido.'),
+  lastName: z.string().min(1, 'El apellido es requerido.'),
+  photoUrl: z.string().url('URL inválida.').optional().or(z.literal('')),
+  documentType: z.string().min(1, "El tipo de documento es requerido."),
+  documentNumber: z.string().min(1, "El número de documento es requerido."),
+  expeditionCountry: z.string().optional(),
+  expeditionDepartment: z.string().optional(),
+  expeditionMunicipality: z.string().optional(),
+  gender: z.string().min(1, "El género es requerido."),
+  dateOfBirth: z.string().min(1, 'La fecha de nacimiento es requerida.'),
+  birthCountry: z.string().optional(),
+  birthDepartment: z.string().optional(),
+  birthMunicipality: z.string().optional(),
+  gradeLevel: z.string().min(1, 'El grado es requerido.'),
+  previousInstitution: z.string().optional(),
+  academicSituation: z.string().optional(),
+  address: z.string().optional(),
+  residentialZone: z.string().optional(),
+  phoneNumber: z.string().optional(),
+  socioeconomicStratum: z.string().optional(),
+  sisbenScore: z.string().optional(),
+  healthProvider: z.string().optional(),
+  healthCenter: z.string().optional(),
+  bloodType: z.string().optional(),
+  disability: z.string().optional(),
+  parents: z.array(parentSchema).min(1, 'Se requiere al menos un acudiente.'),
+});
+
+type CreateStudentFormValues = z.infer<typeof formSchema>;
+
+interface CreateStudentDialogProps {
+  isOpen: boolean;
+  onOpenChange: (isOpen: boolean) => void;
+}
+
+export function CreateStudentDialog({
+  isOpen,
+  onOpenChange,
+}: CreateStudentDialogProps) {
+  const { toast } = useToast();
+  const firestore = useFirestore();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const form = useForm<CreateStudentFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      photoUrl: '',
+      documentType: '',
+      documentNumber: '',
+      expeditionCountry: 'Colombia',
+      expeditionDepartment: '',
+      expeditionMunicipality: '',
+      gender: '',
+      dateOfBirth: '',
+      birthCountry: 'Colombia',
+      birthDepartment: '',
+      birthMunicipality: '',
+      gradeLevel: '',
+      previousInstitution: 'N/A',
+      academicSituation: 'Aprobado',
+      address: '',
+      residentialZone: '',
+      phoneNumber: '',
+      socioeconomicStratum: '',
+      sisbenScore: '',
+      healthProvider: '',
+      healthCenter: '',
+      bloodType: '',
+      disability: 'Ninguna',
+      parents: [{ firstName: '', lastName: '', email: '' }],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: 'parents',
+  });
+  
+  const photoUrl = form.watch("photoUrl");
+
+  const onSubmit = async (values: CreateStudentFormValues) => {
+    setIsLoading(true);
+    try {
+      const batch = writeBatch(firestore);
+      const studentId = doc(collection(firestore, 'students')).id;
+
+      const parentIds: string[] = [];
+
+      for (const parentData of values.parents) {
+        const parentId = doc(collection(firestore, 'parents')).id;
+        const parentRef = doc(firestore, 'parents', parentId);
+        batch.set(parentRef, { 
+            ...parentData, 
+            id: parentId,
+            studentIds: [studentId] 
+        });
+        parentIds.push(parentId);
+      }
+
+      const studentRef = doc(firestore, 'students', studentId);
+      batch.set(studentRef, {
+        id: studentId,
+        ...values,
+        parentIds: parentIds,
+        enrollmentDate: new Date().toISOString().split('T')[0],
+      });
+
+      await batch.commit();
+      
+      toast({
+        title: '¡Estudiante Creado!',
+        description: `${values.firstName} ${values.lastName} ha sido añadido exitosamente.`,
+      });
+      form.reset();
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error creating student:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo crear el estudiante. Por favor, inténtelo de nuevo.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-4xl">
+        <DialogHeader>
+          <DialogTitle>Crear Nuevo Estudiante (SIMAT)</DialogTitle>
+          <DialogDescription>
+            Complete el formulario para registrar un nuevo estudiante según la normativa.
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <ScrollArea className="h-[70vh] pr-6">
+            <div className="space-y-6 p-1">
+              <h3 className="font-semibold text-lg">Información Personal y Foto</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+                 <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="firstName" render={({ field }) => (
+                        <FormItem><FormLabel>Nombres</FormLabel><FormControl><Input placeholder="Ej: Ana" {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                    <FormField control={form.control} name="lastName" render={({ field }) => (
+                        <FormItem><FormLabel>Apellidos</FormLabel><FormControl><Input placeholder="Ej: García" {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                     <div className="md:col-span-2">
+                        <FormField control={form.control} name="photoUrl" render={({ field }) => (
+                            <FormItem><FormLabel>URL de la Foto</FormLabel><FormControl><Input type="url" placeholder="https://ejemplo.com/foto.png" {...field} /></FormControl><FormMessage /></FormItem>
+                        )}/>
+                    </div>
+                 </div>
+                 <div className="space-y-2 flex flex-col items-center">
+                    <div className="w-32 h-32 rounded-full border bg-muted flex items-center justify-center overflow-hidden">
+                        {photoUrl && photoUrl.startsWith('http') ? (
+                        <Image
+                            src={photoUrl}
+                            alt="Avatar del estudiante"
+                            width={128}
+                            height={128}
+                            className="object-cover w-full h-full"
+                        />
+                        ) : (
+                        <UserIcon className="w-16 h-16 text-muted-foreground" />
+                        )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Previsualización</p>
+                 </div>
+              </div>
+
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 <FormField control={form.control} name="documentType" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipo de Documento</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Seleccione un tipo" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                              <SelectItem value="Registro Civil">Registro Civil</SelectItem>
+                              <SelectItem value="Tarjeta de Identidad">Tarjeta de Identidad</SelectItem>
+                              <SelectItem value="Cédula de Ciudadanía">Cédula de Ciudadanía</SelectItem>
+                              <SelectItem value="Cédula de Extranjería">Cédula de Extranjería</SelectItem>
+                              <SelectItem value="Pasaporte">Pasaporte</SelectItem>
+                          </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}/>
+                <FormField control={form.control} name="documentNumber" render={({ field }) => (
+                    <FormItem><FormLabel>Número de Documento</FormLabel><FormControl><Input placeholder="Ej: 1029384756" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                 <FormField control={form.control} name="gender" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Género</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Seleccione un género" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                              <SelectItem value="Masculino">Masculino</SelectItem>
+                              <SelectItem value="Femenino">Femenino</SelectItem>
+                          </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}/>
+              </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField control={form.control} name="expeditionCountry" render={({ field }) => (
+                  <FormItem><FormLabel>País de Expedición</FormLabel><FormControl><Input placeholder="Ej: Colombia" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="expeditionDepartment" render={({ field }) => (
+                  <FormItem><FormLabel>Departamento de Expedición</FormLabel><FormControl><Input placeholder="Ej: Cundinamarca" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="expeditionMunicipality" render={({ field }) => (
+                  <FormItem><FormLabel>Municipio de Expedición</FormLabel><FormControl><Input placeholder="Ej: Bogotá D.C." {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 <FormField control={form.control} name="dateOfBirth" render={({ field }) => (
+                    <FormItem><FormLabel>Fecha de Nacimiento</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
+                  )}/>
+                <FormField control={form.control} name="birthCountry" render={({ field }) => (
+                  <FormItem><FormLabel>País de Nacimiento</FormLabel><FormControl><Input placeholder="Ej: Colombia" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="birthDepartment" render={({ field }) => (
+                  <FormItem><FormLabel>Dep. de Nacimiento</FormLabel><FormControl><Input placeholder="Ej: Cundinamarca" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+              </div>
+              
+              <Separator className="my-6" />
+
+              <h3 className="font-semibold text-lg">Información Académica y Residencia</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField control={form.control} name="gradeLevel" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Grado a Matricular</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Seleccione un grado" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                            <SelectItem value="Pre-jardín">Pre-jardín</SelectItem>
+                            <SelectItem value="Jardín">Jardín</SelectItem>
+                            <SelectItem value="Transición">Transición</SelectItem>
+                            <SelectItem value="Primero">Primero</SelectItem>
+                            <SelectItem value="Segundo">Segundo</SelectItem>
+                            <SelectItem value="Tercero">Tercero</SelectItem>
+                            <SelectItem value="Cuarto">Cuarto</SelectItem>
+                            <SelectItem value="Quinto">Quinto</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}/>
+                <FormField control={form.control} name="previousInstitution" render={({ field }) => (
+                  <FormItem><FormLabel>Institución Anterior</FormLabel><FormControl><Input placeholder="Nombre del colegio anterior" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="academicSituation" render={({ field }) => (
+                   <FormItem>
+                      <FormLabel>Situación Académica Anterior</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Seleccione..." /></SelectTrigger></FormControl>
+                          <SelectContent>
+                              <SelectItem value="Aprobado">Aprobado</SelectItem>
+                              <SelectItem value="Reprobado">Reprobado</SelectItem>
+                              <SelectItem value="Nuevo">Nuevo (Sin escolaridad)</SelectItem>
+                          </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                )}/>
+              </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField control={form.control} name="address" render={({ field }) => (
+                  <FormItem><FormLabel>Dirección</FormLabel><FormControl><Input placeholder="Ej: Cra 5 #10-2" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="phoneNumber" render={({ field }) => (
+                  <FormItem><FormLabel>Teléfono</FormLabel><FormControl><Input placeholder="Ej: 3001234567" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="residentialZone" render={({ field }) => (
+                   <FormItem>
+                      <FormLabel>Zona Residencial</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Seleccione zona" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                              <SelectItem value="Urbana">Urbana</SelectItem>
+                              <SelectItem value="Rural">Rural</SelectItem>
+                          </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                )}/>
+              </div>
+
+              <Separator className="my-6" />
+              <h3 className="font-semibold text-lg">Información Social y de Salud</h3>
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField control={form.control} name="socioeconomicStratum" render={({ field }) => (
+                  <FormItem><FormLabel>Estrato</FormLabel><FormControl><Input placeholder="Ej: 3" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="sisbenScore" render={({ field }) => (
+                  <FormItem><FormLabel>SISBEN</FormLabel><FormControl><Input placeholder="Ej: C5" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="disability" render={({ field }) => (
+                  <FormItem><FormLabel>Discapacidad</FormLabel><FormControl><Input placeholder="Ej: Ninguna" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+              </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField control={form.control} name="healthProvider" render={({ field }) => (
+                  <FormItem><FormLabel>EPS</FormLabel><FormControl><Input placeholder="Ej: Sura" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="healthCenter" render={({ field }) => (
+                  <FormItem><FormLabel>IPS Primaria</FormLabel><FormControl><Input placeholder="Ej: Clínica Las Américas" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="bloodType" render={({ field }) => (
+                  <FormItem><FormLabel>Tipo de Sangre</FormLabel><FormControl><Input placeholder="Ej: O+" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+              </div>
+
+              <Separator className="my-6" />
+              <h3 className="font-semibold text-lg">Información de Acudientes</h3>
+              <div className="space-y-4">
+                  {fields.map((field, index) => (
+                      <div key={field.id} className="p-3 border rounded-lg space-y-3 relative">
+                           <div className="grid grid-cols-2 gap-4">
+                               <FormField control={form.control} name={`parents.${index}.firstName`} render={({ field }) => (
+                                <FormItem><FormLabel>Nombres del Acudiente</FormLabel><FormControl><Input placeholder="Ej: Carlos" {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                              <FormField control={form.control} name={`parents.${index}.lastName`} render={({ field }) => (
+                                <FormItem><FormLabel>Apellidos del Acudiente</FormLabel><FormControl><Input placeholder="Ej: Rodríguez" {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                           </div>
+                          <FormField control={form.control} name={`parents.${index}.email`} render={({ field }) => (
+                            <FormItem><FormLabel>Email del Acudiente</FormLabel><FormControl><Input type="email" placeholder="Ej: c.rodriguez@example.com" {...field} /></FormControl><FormMessage /></FormItem>
+                          )}/>
+                          {fields.length > 1 && (
+                              <Button variant="destructive" size="sm" onClick={() => remove(index)} className="absolute top-2 right-2">
+                                  <Trash2 className="h-4 w-4" />
+                              </Button>
+                          )}
+                      </div>
+                  ))}
+                  <Button type="button" variant="outline" size="sm" onClick={() => append({ firstName: '', lastName: '', email: '' })}>
+                      <PlusCircle className="mr-2 h-4 w-4" /> Añadir otro Acudiente
+                  </Button>
+              </div>
+            </div>
+            </ScrollArea>
+            <DialogFooter className="pt-4">
+              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Guardar Estudiante
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}

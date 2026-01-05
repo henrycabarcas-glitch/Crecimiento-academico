@@ -1,0 +1,64 @@
+{
+  "placeholderImages": [
+    {
+      "id": "student-1",
+      "description": "Avatar for student Sofia Rodriguez",
+      "imageUrl": "https://images.unsplash.com/photo-1633322007934-4e0dd1213397?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxjaGlsZCUyMHNtaWxpbmd8ZW58MHx8fHwxNzY2MTQ4NTQ2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "child smiling"
+    },
+    {
+      "id": "student-2",
+      "description": "Avatar for student Mateo Garcia",
+      "imageUrl": "https://images.unsplash.com/photo-1595760780346-f972eb49709f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxjaGlsZCUyMHBvcnRyYWl0fGVufDB8fHx8MTc2NjA2MzYzOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "child portrait"
+    },
+    {
+      "id": "student-3",
+      "description": "Avatar for student Valentina Martinez",
+      "imageUrl": "https://images.unsplash.com/photo-1535726858289-9ffe2dff6f52?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxraWQlMjBwbGF5aW5nfGVufDB8fHx8MTc2NjE3NTM0MHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "kid playing"
+    },
+    {
+      "id": "student-4",
+      "description": "Avatar for student Santiago Lopez",
+      "imageUrl": "https://images.unsplash.com/photo-1491309055486-24ae511c15c7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxzdHVkZW50JTIwcmVhZGluZ3xlbnwwfHx8fDE3NjYxNzUzNDB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "student reading"
+    },
+    {
+      "id": "student-5",
+      "description": "Avatar for student Isabella Gonzalez",
+      "imageUrl": "https://images.unsplash.com/photo-1646772281149-91ae4a9478d3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Z2lybCUyMGxhdWdoaW5nfGVufDB8fHx8MTc2NjE3NTM0MHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "girl laughing"
+    },
+    {
+      "id": "student-6",
+      "description": "Avatar for student Lucas Hernandez",
+      "imageUrl": "https://images.unsplash.com/photo-1619783181561-187763a877e2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Ym95JTIwc21pbGluZ3xlbnwwfHx8fDE3NjYwNTQyMjZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "boy smiling"
+    },
+    {
+      "id": "student-7",
+      "description": "Avatar for student Camila Perez",
+      "imageUrl": "https://images.unsplash.com/photo-1598897516650-e4dc73d8e417?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxnaXJsJTIwcG9ydHJhaXR8ZW58MHx8fHwxNzY2MTYyMDE3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "girl portrait"
+    },
+    {
+      "id": "student-8",
+      "description": "Avatar for student Sebastian Gomez",
+      "imageUrl": "https://images.unsplash.com/photo-1669310746279-ac8fc008866d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxib3klMjBwbGF5aW5nfGVufDB8fHx8MTc2NjE3NTgxNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "boy playing"
+    },
+    {
+      "id": "student-9",
+      "description": "Avatar for student Gabriela Diaz",
+      "imageUrl": "https://images.unsplash.com/photo-1578667343354-26a1de5bfe5a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxnaXJsJTIwcmVhZGluZ3xlbnwwfHx8fDE3NjYxNzU4MTV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "girl reading"
+    },
+    {
+      "id": "user-avatar",
+      "description": "Avatar for the current user",
+      "imageUrl": "https://images.unsplash.com/photo-1590650213165-c1fef80648c4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHx3b21hbiUyMHRlYWNoZXJ8ZW58MHx8fHwxNzY2MTc1MzQxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman teacher"
+    }
+  ]
+}
