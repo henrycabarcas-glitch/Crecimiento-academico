@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -40,9 +40,10 @@ const formSchema = z.object({
   phone: z.string().optional(),
   address: z.string().optional(),
   email: z.string().email('Email inválido.').optional().or(z.literal('')),
-  logoUrl: z.string().url('URL inválida.').optional().or(z.literal('')),
+  logoUrl: z.string().optional(),
   nit: z.string().optional(),
   resolutionMEN: z.string().optional(),
+  daneCode: z.string().optional(),
 });
 
 type SettingsFormValues = z.infer<typeof formSchema>;
@@ -56,6 +57,7 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [canEdit, setCanEdit] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
 
   const form = useForm<SettingsFormValues>({
@@ -69,10 +71,22 @@ export default function SettingsPage() {
       logoUrl: "",
       nit: "",
       resolutionMEN: "",
+      daneCode: "",
     },
   });
   
   const logoUrl = form.watch("logoUrl");
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        form.setValue('logoUrl', reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   useEffect(() => {
     async function checkPermissionsAndFetch() {
@@ -119,6 +133,7 @@ export default function SettingsPage() {
                         logoUrl: data.logoUrl || "",
                         nit: data.nit || "",
                         resolutionMEN: data.resolutionMEN || "",
+                        daneCode: data.daneCode || "",
                     });
                 }
             } catch (error) {
@@ -197,7 +212,7 @@ export default function SettingsPage() {
                     <>
                       <div className="space-y-2 text-center">
                         <div className="mx-auto w-32 h-32 rounded-lg border bg-muted flex items-center justify-center">
-                          {logoUrl && logoUrl.startsWith('http') ? (
+                          {logoUrl && logoUrl.startsWith('data:image') ? (
                             <Image
                               src={logoUrl}
                               alt="Logo del colegio"
@@ -214,9 +229,24 @@ export default function SettingsPage() {
                             name="logoUrl"
                             render={({ field }) => (
                             <FormItem>
-                                <FormLabel>URL del Logo</FormLabel>
+                                <FormLabel>Logo del Colegio</FormLabel>
                                 <FormControl>
-                                <Input type="url" placeholder="https://ejemplo.com/logo.png" {...field} />
+                                  <div>
+                                    <Input 
+                                      type="file" 
+                                      accept="image/*" 
+                                      className="hidden" 
+                                      ref={fileInputRef} 
+                                      onChange={handleLogoChange}
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      onClick={() => fileInputRef.current?.click()}
+                                    >
+                                      Subir Logo
+                                    </Button>
+                                  </div>
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -264,6 +294,19 @@ export default function SettingsPage() {
                           )}
                         />
                       </div>
+                      <FormField
+                        control={form.control}
+                        name="daneCode"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Registro DANE</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Ej: 123456789012" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
                           control={form.control}

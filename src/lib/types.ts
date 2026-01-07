@@ -1,3 +1,4 @@
+
 export interface Student {
     id: string;
     firstName: string;
@@ -35,6 +36,7 @@ export interface Parent {
     firstName: string;
     lastName: string;
     email: string;
+    photoUrl?: string;
     studentIds?: string[];
 }
 
@@ -45,6 +47,7 @@ export interface Teacher {
     firstName: string;
     lastName: string;
     email: string;
+    photoUrl?: string;
     role?: UserRole;
     courseIds?: string[];
 }
@@ -53,6 +56,7 @@ export interface User extends Teacher, Partial<Parent> {
     firstName: string;
     lastName: string;
     email: string;
+    photoUrl?: string;
     role: UserRole;
     sourceCollection: 'teachers' | 'parents';
 }
@@ -111,9 +115,12 @@ export interface SchoolSettings {
     schoolName: string;
     nit?: string;
     resolutionMEN?: string;
+    daneCode?: string;
     rectorName?: string;
     phone?: string;
     address?: string;
     email?: string;
     logoUrl?: string;
 }
+
+    

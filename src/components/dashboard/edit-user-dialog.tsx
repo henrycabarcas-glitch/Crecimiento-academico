@@ -1,9 +1,11 @@
+
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { doc } from 'firebase/firestore';
+import Image from 'next/image';
 import {
   Dialog,
   DialogContent,
@@ -31,13 +33,14 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, updateDocumentNonBlocking } from '@/firebase';
-import { Loader2 } from 'lucide-react';
+import { Loader2, User as UserIcon } from 'lucide-react';
 import { User, UserRole } from '@/lib/types';
 
 const formSchema = z.object({
   firstName: z.string().min(1, 'El nombre es requerido.'),
   lastName: z.string().min(1, 'El apellido es requerido.'),
   email: z.string().email('Email inválido.'),
+  photoUrl: z.string().optional(),
   role: z.enum(['Profesor', 'Acudiente', 'Director', 'Directivo Docente', 'Administrador'], {
     required_error: 'El rol es requerido.',
   }),
@@ -59,10 +62,13 @@ export function EditUserDialog({
   const { toast } = useToast();
   const firestore = useFirestore();
   const [isLoading, setIsLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<EditUserFormValues>({
     resolver: zodResolver(formSchema),
   });
+
+  const photoUrl = form.watch("photoUrl");
 
   useEffect(() => {
     if (user) {
@@ -70,10 +76,22 @@ export function EditUserDialog({
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
+        photoUrl: user.photoUrl || '',
         role: user.role,
       });
     }
   }, [user, form]);
+  
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        form.setValue('photoUrl', reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const onSubmit = async (values: EditUserFormValues) => {
     if (!user) return;
@@ -85,6 +103,7 @@ export function EditUserDialog({
         firstName: values.firstName,
         lastName: values.lastName,
         email: values.email,
+        photoUrl: values.photoUrl,
       };
 
       if (user.sourceCollection === 'teachers') {
@@ -123,6 +142,36 @@ export function EditUserDialog({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+             <div className="space-y-2 flex flex-col items-center">
+                <div className="w-24 h-24 rounded-full border bg-muted flex items-center justify-center overflow-hidden">
+                    {photoUrl ? (
+                    <Image
+                        src={photoUrl}
+                        alt="Avatar del usuario"
+                        width={96}
+                        height={96}
+                        className="object-cover w-full h-full"
+                    />
+                    ) : (
+                    <UserIcon className="w-12 h-12 text-muted-foreground" />
+                    )}
+                </div>
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                >
+                    Cambiar Foto
+                </Button>
+                <Input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    ref={fileInputRef}
+                    onChange={handlePhotoChange}
+                />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}

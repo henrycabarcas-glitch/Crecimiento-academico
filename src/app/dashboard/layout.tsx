@@ -7,7 +7,7 @@ import {
   SidebarInset,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { GraduationCap, Loader2 } from "lucide-react";
+import { GraduationCap, Loader2, Home } from "lucide-react";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import Link from "next/link";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
@@ -34,6 +34,23 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 
 const userAvatar = PlaceHolderImages.find(img => img.id === 'user-avatar');
+
+function MushroomIcon(props: React.SVGProps<SVGSVGElement>) {
+    return (
+        <svg
+        {...props}
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        >
+            <path d="M12 2c-3.31 0-6 2.69-6 6v1h12V8c0-3.31-2.69-6-6-6zm-3.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm7 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z" fill="#E57373"/>
+            <path d="M6 10h12v10c0 1.1-.9 2-2 2H8c-1.1 0-2-.9-2-2V10z" fill="#F0F4C3"/>
+            <circle cx="12" cy="5.5" r="1.5" fill="#FFFFFF"/>
+        </svg>
+    )
+}
 
 export default function DashboardLayout({
   children,
@@ -98,32 +115,32 @@ export default function DashboardLayout({
 
   if (!user) {
     return (
-        <div className="flex h-screen items-center justify-center bg-secondary">
+        <div className="flex h-screen items-center justify-center bg-blue-100">
              <Card className="w-full max-w-sm">
                  <form onSubmit={form.handleSubmit(handleLogin)}>
                     <CardHeader className="text-center">
                         <div className="flex items-center justify-center gap-3 mb-4">
-                            <div className="flex items-center justify-center size-12 rounded-lg bg-primary text-primary-foreground">
-                            <GraduationCap className="size-7" />
+                            <div className="flex items-center justify-center size-12 rounded-lg bg-blue-500 text-white">
+                                <MushroomIcon className="size-7" />
                             </div>
                         </div>
-                        <CardTitle className="text-2xl">Crecimiento Académico</CardTitle>
-                        <CardDescription>Por favor, inicie sesión para continuar</CardDescription>
+                        <CardTitle className="text-2xl text-blue-900 font-bold">Aldea Pitufa</CardTitle>
+                        <CardDescription>¡Pitufea tus datos para entrar!</CardDescription>
                     </CardHeader>
                     <CardContent className="grid gap-4">
                         <div className="grid gap-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input id="email" type="email" placeholder="m@example.com" required {...form.register('email')} />
+                            <Label htmlFor="email">Pitufo-Email</Label>
+                            <Input id="email" type="email" placeholder="papa.pitufo@aldea.com" required {...form.register('email')} />
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="password">Contraseña</Label>
+                            <Label htmlFor="password">Contraseña Pitufa</Label>
                             <Input id="password" type="password" required {...form.register('password')}/>
                         </div>
                     </CardContent>
                     <CardFooter>
-                        <Button className="w-full" type="submit" disabled={isLoading}>
+                        <Button className="w-full bg-blue-600 hover:bg-blue-700" type="submit" disabled={isLoading}>
                             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Iniciar Sesión
+                            ¡Pitufar!
                         </Button>
                     </CardFooter>
                 </form>
@@ -139,10 +156,10 @@ export default function DashboardLayout({
         <SidebarHeader>
           <Link href="/dashboard" className="flex items-center gap-3 p-2 -ml-2">
             <div className="flex items-center justify-center size-10 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-              <GraduationCap className="size-6" />
+              <MushroomIcon className="size-6" />
             </div>
             <h1 className="text-lg font-semibold font-headline tracking-tight text-sidebar-primary">
-              Crecimiento Académico
+              Aldea Pitufa
             </h1>
           </Link>
         </SidebarHeader>

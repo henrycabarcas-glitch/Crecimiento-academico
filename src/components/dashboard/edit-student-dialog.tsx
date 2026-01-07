@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -39,7 +39,7 @@ import { WithId } from '@/firebase';
 const formSchema = z.object({
   firstName: z.string().min(1, 'El nombre es requerido.'),
   lastName: z.string().min(1, 'El apellido es requerido.'),
-  photoUrl: z.string().url('URL inválida.').optional().or(z.literal('')),
+  photoUrl: z.string().optional(),
   dateOfBirth: z.string().min(1, 'La fecha de nacimiento es requerida.'),
   gradeLevel: z.string().min(1, 'El grado es requerido.'),
 });
@@ -60,6 +60,7 @@ export function EditStudentDialog({
   const { toast } = useToast();
   const firestore = useFirestore();
   const [isLoading, setIsLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<EditStudentFormValues>({
     resolver: zodResolver(formSchema),
@@ -78,6 +79,18 @@ export function EditStudentDialog({
       });
     }
   }, [student, form]);
+  
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        form.setValue('photoUrl', reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
 
   const onSubmit = async (values: EditStudentFormValues) => {
     if (!student) return;
@@ -125,13 +138,34 @@ export function EditStudentDialog({
                     )}/>
                      <div className="md:col-span-2">
                         <FormField control={form.control} name="photoUrl" render={({ field }) => (
-                            <FormItem><FormLabel>URL de la Foto</FormLabel><FormControl><Input type="url" placeholder="https://ejemplo.com/foto.png" {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem>
+                                <FormLabel>Foto del Estudiante</FormLabel>
+                                <FormControl>
+                                    <>
+                                        <Input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            ref={fileInputRef}
+                                            onChange={handlePhotoChange}
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => fileInputRef.current?.click()}
+                                        >
+                                            Cambiar Foto
+                                        </Button>
+                                    </>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
                         )}/>
                     </div>
                  </div>
                  <div className="space-y-2 flex flex-col items-center">
                     <div className="w-32 h-32 rounded-full border bg-muted flex items-center justify-center overflow-hidden">
-                        {photoUrl && photoUrl.startsWith('http') ? (
+                        {photoUrl ? (
                         <Image
                             src={photoUrl}
                             alt="Avatar del estudiante"

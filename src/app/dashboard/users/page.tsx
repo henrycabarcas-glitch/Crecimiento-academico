@@ -1,3 +1,4 @@
+
 'use client';
 import { useMemo, useState, useEffect } from 'react';
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -13,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { MoreHorizontal, Loader2, PlusCircle, Trash2 } from "lucide-react";
+import { MoreHorizontal, Loader2, PlusCircle, Trash2, User as UserIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,7 +23,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { CreateUserDialog } from '@/components/dashboard/create-user-dialog';
 import { EditUserDialog } from '@/components/dashboard/edit-user-dialog';
 import { User, UserRole, Teacher, Parent } from '@/lib/types';
@@ -83,11 +83,6 @@ export default function UsersPage() {
   }, []);
 
   const isLoading = hasAdminUser === null;
-
-  const getUserAvatar = (user: User) => {
-    const userAvatar = PlaceHolderImages.find(img => img.id === 'user-avatar');
-    return userAvatar || { imageUrl: '', imageHint: '' };
-  };
 
   const getRoleBadgeVariant = (role: UserRole) => {
     switch (role) {
@@ -187,15 +182,18 @@ export default function UsersPage() {
                   </TableHeader>
                   <TableBody>
                     {users.map((user) => {
-                        const { imageUrl, imageHint } = getUserAvatar(user);
-
                         return (
                           <TableRow key={user.id}>
                             <TableCell>
                               <div className="flex items-center gap-3">
                                 <Avatar className="h-10 w-10">
-                                  <AvatarImage src={imageUrl} alt={`${user.firstName} ${user.lastName}`} data-ai-hint={imageHint}/>
-                                  <AvatarFallback>{user.firstName.charAt(0)}{user.lastName.charAt(0)}</AvatarFallback>
+                                  {user.photoUrl ? (
+                                    <AvatarImage src={user.photoUrl} alt={`${user.firstName} ${user.lastName}`} />
+                                  ) : (
+                                    <AvatarFallback>
+                                      <UserIcon className="h-5 w-5" />
+                                    </AvatarFallback>
+                                  )}
                                 </Avatar>
                                 <div className="font-medium">{user.firstName} {user.lastName}</div>
                               </div>

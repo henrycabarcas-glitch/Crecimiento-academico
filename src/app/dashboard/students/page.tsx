@@ -25,26 +25,18 @@ import {
 import { CreateStudentDialog } from '@/components/dashboard/create-student-dialog';
 import { EditStudentDialog } from '@/components/dashboard/edit-student-dialog';
 import { WithId, useFirestore, deleteDocumentNonBlocking } from '@/firebase';
-import { Student, Parent } from '@/lib/types';
+import { Student } from '@/lib/types';
 import { DeleteConfirmationDialog } from '@/components/dashboard/delete-confirmation-dialog';
 import { doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
-
-const studentsData: (Student & { parents: Parent[] })[] = [
-    { id: "S001", firstName: "Sofía", lastName: "Rodriguez", photoUrl: "https://images.unsplash.com/photo-1633322007934-4e0dd1213397?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxjaGlsZCUyMHNtaWxpbmd8ZW58MHx8fHwxNzY2MTQ4NTQ2fDA&ixlib=rb-4.1.0&q=80&w=1080", gradeLevel: "Jardín", parentIds: ["P001"], parents: [{id: 'P001', firstName: "Luisa", lastName: "Fernandez", email: "luisa.f@example.com"}], enrollmentDate: '', documentNumber: '', documentType: '', dateOfBirth: '', gender: ''},
-    { id: "S002", firstName: "Mateo", lastName: "Garcia", photoUrl: "https://images.unsplash.com/photo-1595760780346-f972eb49709f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxjaGlsZCUyMHBvcnRyYWl0fGVufDB8fHx8MTc2NjA2MzYzOHww&ixlib=rb-4.1.0&q=80&w=1080", gradeLevel: "Jardín", parentIds: ["P002"], parents: [{id: 'P002', firstName: "Carlos", lastName: "Garcia", email: "carlos.g@example.com"}], enrollmentDate: '', documentNumber: '', documentType: '', dateOfBirth: '', gender: ''},
-    { id: "S003", firstName: "Valentina", lastName: "Martinez", gradeLevel: "Transición", parentIds: ["P003"], parents: [{id: 'P003', firstName: "Maria", lastName: "Martinez", email: "maria.m@example.com"}], enrollmentDate: '', documentNumber: '', documentType: '', dateOfBirth: '', gender: '' },
-    { id: "S004", firstName: "Santiago", lastName: "Lopez", gradeLevel: "Transición", parentIds: ["P004"], parents: [{id: 'P004', firstName: "Juan", lastName: "Lopez", email: "juan.l@example.com"}], enrollmentDate: '', documentNumber: '', documentType: '', dateOfBirth: '', gender: '' },
-    { id: "S005", firstName: "Isabella", lastName: "Gonzalez", gradeLevel: "Pre-jardín", parentIds: ["P005"], parents: [{id: 'P005', firstName: "Sofia", lastName: "Gonzalez", email: "sofia.g@example.com"}], enrollmentDate: '', documentNumber: '', documentType: '', dateOfBirth: '', gender: ''},
-];
+import { useStudents } from '@/hooks/use-students';
 
 
 export default function StudentsPage() {
   const { toast } = useToast();
   const firestore = useFirestore();
-  const isLoading = false;
-  const students = studentsData;
+  const { data: students, isLoading } = useStudents();
 
   const [isCreateStudentDialogOpen, setCreateStudentDialogOpen] = useState(false);
   const [isEditStudentDialogOpen, setEditStudentDialogOpen] = useState(false);
@@ -126,8 +118,8 @@ export default function StudentsPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ) : (
-                  students?.map((student) => {
+                ) : students && students.length > 0 ? (
+                  students.map((student) => {
                     const parent = student.parents?.[0];
 
                     return (
@@ -179,6 +171,12 @@ export default function StudentsPage() {
                       </TableRow>
                     )
                   })
+                ) : (
+                    <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                            No se encontraron estudiantes. ¡Crea el primero!
+                        </TableCell>
+                    </TableRow>
                 )}
               </TableBody>
             </Table>
