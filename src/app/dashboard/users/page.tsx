@@ -1,6 +1,6 @@
 
 'use client';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { PageHeader } from "@/components/dashboard/page-header";
 import {
   Table,
@@ -25,30 +25,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CreateUserDialog } from '@/components/dashboard/create-user-dialog';
 import { EditUserDialog } from '@/components/dashboard/edit-user-dialog';
-import { User, UserRole, Teacher, Parent } from '@/lib/types';
+import { User, UserRole } from '@/lib/types';
 import { DeleteConfirmationDialog } from '@/components/dashboard/delete-confirmation-dialog';
-import { doc } from 'firebase/firestore';
-import { useFirestore, deleteDocumentNonBlocking } from '@/firebase';
+import { doc, deleteDoc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { CreateUserForm } from '@/components/dashboard/create-user-form';
 import { hasManagementRole } from '@/lib/auth';
+import { useUsers } from '@/hooks/use-users';
 
-
-const teachersData: Teacher[] = [
-    { id: "T001", firstName: "Carmen", lastName: "Diaz", email: "carmen.d@example.com", role: "Profesor" },
-    { id: "T002", firstName: "Jorge", lastName: "Perez", email: "jorge.p@example.com", role: "Profesor" },
-    { id: "T003", firstName: "Ana", lastName: "Gomez", email: "ana.g@example.com", role: "Director" },
-];
-
-const parentsData: Parent[] = [
-    { id: "P001", firstName: "Luisa", lastName: "Fernandez", email: "luisa.f@example.com" },
-    { id: "P002", firstName: "Carlos", lastName: "Garcia", email: "carlos.g@example.com" },
-    { id: "P003", firstName: "Maria", lastName: "Martinez", email: "maria.m@example.com" },
-];
 
 export default function UsersPage() {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { data: users, isLoading: isLoadingUsers, teachers } = useUsers();
   
   const [isCreateUserDialogOpen, setCreateUserDialogOpen] = useState(false);
   const [isEditUserDialogOpen, setEditUserDialogOpen] = useState(false);
@@ -57,32 +47,37 @@ export default function UsersPage() {
   const [isDeleteLoading, setDeleteLoading] = useState(false);
   const [hasAdminUser, setHasAdminUser] = useState<boolean | null>(null);
 
-  const users: User[] = useMemo(() => {
-    const combinedUsers: User[] = [];
-    
-    teachersData?.forEach(t => combinedUsers.push({
-      ...t,
-      role: t.role || 'Profesor',
-      sourceCollection: 'teachers'
-    }));
-
-    parentsData?.forEach(p => combinedUsers.push({
-      ...p,
-      role: 'Acudiente',
-      sourceCollection: 'parents'
-    }));
-
-    return combinedUsers.sort((a, b) => a.lastName.localeCompare(b.lastName));
+  const handleSetCreateUserDialogOpen = useCallback((isOpen: boolean) => {
+    setCreateUserDialogOpen(isOpen);
   }, []);
   
-  useEffect(() => {
-    if (teachersData) {
-      const adminExists = teachersData.some(t => hasManagementRole(t.role));
-      setHasAdminUser(adminExists);
+  const handleSetEditUserDialogOpen = useCallback((isOpen: boolean) => {
+    setEditUserDialogOpen(isOpen);
+    if (!isOpen) {
+        setUserToAction(null);
     }
   }, []);
 
-  const isLoading = hasAdminUser === null;
+  const handleSetDeleteUserDialogOpen = useCallback((isOpen: boolean) => {
+    setDeleteUserDialogOpen(isOpen);
+    if (!isOpen) {
+        setUserToAction(null);
+    }
+  }, []);
+
+  const handleUserCreated = useCallback(() => {
+    setHasAdminUser(true); // Assume admin exists now
+    setCreateUserDialogOpen(false);
+  }, []);
+  
+  useEffect(() => {
+    if (!isLoadingUsers && teachers) {
+      const adminExists = teachers.some(t => hasManagementRole(t.role));
+      setHasAdminUser(adminExists);
+    }
+  }, [teachers, isLoadingUsers]);
+
+  const isLoading = isLoadingUsers || hasAdminUser === null;
 
   const getRoleBadgeVariant = (role: UserRole) => {
     switch (role) {
@@ -115,7 +110,7 @@ export default function UsersPage() {
 
     try {
       const userRef = doc(firestore, userToAction.sourceCollection, userToAction.id);
-      deleteDocumentNonBlocking(userRef);
+      await deleteDoc(userRef);
       
       toast({
         title: '¡Usuario Eliminado!',
@@ -158,7 +153,7 @@ export default function UsersPage() {
               <CardContent>
                 <CreateUserForm
                     isInitialAdmin
-                    onUserCreated={() => setHasAdminUser(true)}
+                    onUserCreated={handleUserCreated}
                 />
               </CardContent>
             </Card>
@@ -181,7 +176,7 @@ export default function UsersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users.map((user) => {
+                    {users?.map((user) => {
                         return (
                           <TableRow key={user.id}>
                             <TableCell>
@@ -238,19 +233,19 @@ export default function UsersPage() {
       </div>
        <CreateUserDialog
         isOpen={isCreateUserDialogOpen}
-        onOpenChange={setCreateUserDialogOpen}
+        onOpenChange={handleSetCreateUserDialogOpen}
       />
       {userToAction && (
         <EditUserDialog
           user={userToAction}
           isOpen={isEditUserDialogOpen}
-          onOpenChange={setEditUserDialogOpen}
+          onOpenChange={handleSetEditUserDialogOpen}
         />
       )}
       {userToAction && (
         <DeleteConfirmationDialog
           isOpen={isDeleteUserDialogOpen}
-          onOpenChange={setDeleteUserDialogOpen}
+          onOpenChange={handleSetDeleteUserDialogOpen}
           onConfirm={handleDeleteConfirm}
           isLoading={isDeleteLoading}
           title={`¿Eliminar a ${userToAction.firstName}?`}

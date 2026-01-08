@@ -114,4 +114,15 @@ body {
       transform: translateY(0);
     }
   }
+
+  @media print {
+    @page {
+      size: letter;
+      margin: 0.5in;
+    }
+    body {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+  }
 }

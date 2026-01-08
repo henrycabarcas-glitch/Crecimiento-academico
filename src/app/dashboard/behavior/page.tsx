@@ -20,41 +20,84 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PlusCircle, Loader2 } from "lucide-react";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { BehaviorLog, Student } from "@/lib/types";
-
-
-const behaviorLogs: BehaviorLog[] = [
-  { id: 1, studentId: "S004", date: "2024-05-10", observation: "Mostró excelente compañerismo al ayudar a un amigo.", observer: "Prof. Jorge Perez" },
-  { id: 2, studentId: "S002", date: "2024-05-09", observation: "Dificultad para compartir juguetes durante el recreo.", observer: "Prof. Carmen Diaz" },
-  { id: 3, studentId: "S004", date: "2024-04-22", observation: "No completó la tarea asignada en clase.", observer: "Prof. Jorge Perez" },
-];
-
-const studentsData: Student[] = [
-    { id: "S001", firstName: "Sofía", lastName: "Rodriguez", gradeLevel: "Jardín", parentIds: [], enrollmentDate: '' , documentNumber: '', documentType: '', dateOfBirth: '', gender: ''},
-    { id: "S002", firstName: "Mateo", lastName: "Garcia", gradeLevel: "Jardín", parentIds: [], enrollmentDate: '' , documentNumber: '', documentType: '', dateOfBirth: '', gender: ''},
-    { id: "S003", firstName: "Valentina", lastName: "Martinez", gradeLevel: "Transición", parentIds: [], enrollmentDate: '', documentNumber: '', documentType: '', dateOfBirth: '', gender: '' },
-    { id: "S004", firstName: "Santiago", lastName: "Lopez", gradeLevel: "Transición", parentIds: [], enrollmentDate: '', documentNumber: '', documentType: '', dateOfBirth: '', gender: '' },
-    { id: "S005", firstName: "Isabella", lastName: "Gonzalez", gradeLevel: "Pre-jardín", parentIds: [], enrollmentDate: '', documentNumber: '', documentType: '', dateOfBirth: '', gender: ''},
-];
+import { BehavioralObservation, Student } from "@/lib/types";
+import { useStudents } from "@/hooks/use-students";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection, query, where, orderBy, addDoc } from "firebase/firestore";
+import { useUser } from "@/firebase/provider";
+import { useToast } from "@/hooks/use-toast";
 
 
 export default function BehaviorPage() {
+  const { data: students, isLoading: isLoadingStudents } = useStudents();
   const [selectedStudentId, setSelectedStudentId] = useState<string | undefined>();
-  const isLoadingStudents = false;
-  const students = studentsData;
+  const [observationText, setObservationText] = useState("");
+  const [observationType, setObservationType] = useState<'Positive' | 'Negative' | 'Needs Improvement' | undefined>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useUser();
+  const { toast } = useToast();
+
+  const firestore = useFirestore();
 
   const student = students?.find(s => s.id === selectedStudentId);
-  const logs = behaviorLogs.filter(l => l.studentId === selectedStudentId);
+
+  const logsQuery = useMemoFirebase(() => {
+    if (!selectedStudentId) return null;
+    return query(
+        collection(firestore, 'students', selectedStudentId, 'behavioralObservations'), 
+        orderBy('date', 'desc')
+    );
+  }, [firestore, selectedStudentId]);
+
+  const { data: logs, isLoading: isLoadingLogs } = useCollection<BehavioralObservation>(logsQuery);
+
+  const handleAddObservation = async () => {
+    if (!selectedStudentId || !observationText || !user || !observationType) {
+        toast({
+            variant: "destructive",
+            title: "Campos Incompletos",
+            description: "Por favor, seleccione un estudiante, escriba una observación y elija un tipo.",
+        });
+        return;
+    }
+
+    setIsSubmitting(true);
+    try {
+        const observationRef = collection(firestore, 'students', selectedStudentId, 'behavioralObservations');
+        await addDoc(observationRef, {
+            studentId: selectedStudentId,
+            description: observationText,
+            date: new Date().toISOString(),
+            teacherId: user.uid, // Assuming the logged-in user is the teacher making the observation
+            type: observationType,
+        });
+
+        toast({
+            title: "Registro Añadido",
+            description: "La observación ha sido guardada exitosamente.",
+        });
+
+        setObservationText("");
+        setObservationType(undefined);
+    } catch (error) {
+        console.error("Error adding observation: ", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se pudo guardar la observación.",
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
+  }
 
   const getStudentAvatar = (studentId?: string) => {
     if (!studentId) return { imageUrl: '', imageHint: '' };
-    const studentImageId = `student-${studentId.slice(-1)}`;
-    const image = PlaceHolderImages.find(img => img.id === studentImageId);
-    return image || { imageUrl: '', imageHint: '' };
+    return { imageUrl: student?.photoUrl || '', imageHint: 'student portrait' };
   };
 
   const { imageUrl, imageHint } = getStudentAvatar(student?.id);
+  const isLoading = isLoadingStudents || (selectedStudentId ? isLoadingLogs : false);
 
 
   return (
@@ -87,13 +130,36 @@ export default function BehaviorPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
+                    <label htmlFor="observation-type" className="text-sm font-medium">Tipo de Observación</label>
+                    <Select onValueChange={(v) => setObservationType(v as any)} value={observationType} disabled={isSubmitting}>
+                        <SelectTrigger id="observation-type">
+                            <SelectValue placeholder="Seleccione un tipo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Positive">Positiva</SelectItem>
+                            <SelectItem value="Negative">Negativa</SelectItem>
+                            <SelectItem value="Needs Improvement">A mejorar</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-2">
                     <label htmlFor="observation-text" className="text-sm font-medium">Observación</label>
-                    <Textarea id="observation-text" placeholder="Describa el comportamiento..." />
+                    <Textarea 
+                        id="observation-text" 
+                        placeholder="Describa el comportamiento..."
+                        value={observationText}
+                        onChange={(e) => setObservationText(e.target.value)}
+                        disabled={isSubmitting}
+                    />
                 </div>
               </CardContent>
               <CardFooter>
-                <Button>
-                  <PlusCircle className="mr-2 h-4 w-4" />
+                <Button onClick={handleAddObservation} disabled={isSubmitting || !selectedStudentId}>
+                  {isSubmitting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                  )}
                   Añadir Registro
                 </Button>
               </CardFooter>
@@ -119,11 +185,12 @@ export default function BehaviorPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {isLoadingStudents && !student ? (
+                  {isLoading ? (
                      <div className="text-center text-muted-foreground py-8">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto mb-2" />
                         Cargando...
                     </div>
-                  ) : logs.length > 0 ? logs.map((log) => (
+                  ) : logs && logs.length > 0 ? logs.map((log) => (
                     <div key={log.id} className="flex gap-4">
                       <div className="flex-shrink-0">
                          <div className="w-12 h-12 rounded-full bg-secondary flex flex-col items-center justify-center">
@@ -132,9 +199,9 @@ export default function BehaviorPage() {
                         </div>
                       </div>
                       <div>
-                        <p className="font-medium text-foreground">{log.observation}</p>
+                        <p className="font-medium text-foreground">{log.description}</p>
                         <p className="text-sm text-muted-foreground">
-                          Observado por {log.observer}
+                          Observado por: {log.teacherId} {/* Replace with teacher name later */}
                         </p>
                       </div>
                     </div>

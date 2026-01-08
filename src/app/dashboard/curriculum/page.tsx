@@ -1,5 +1,6 @@
+
 'use client';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { PageHeader } from "@/components/dashboard/page-header";
 import {
   Table,
@@ -21,21 +22,16 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { CreateCourseDialog } from '@/components/dashboard/create-course-dialog';
 import { Course } from '@/lib/types';
-
-
-const coursesData: Course[] = [
-    { id: "C001", name: "Dimensión Comunicativa", gradeLevel: "Transición", teacherId: "T001", description: "Desarrollo del lenguaje oral y escrito.", studentIds: [], teacher: { firstName: "Carmen", lastName: "Diaz" } },
-    { id: "C002", name: "Dimensión Cognitiva", gradeLevel: "Transición", teacherId: "T001", description: "Desarrollo del pensamiento lógico-matemático.", studentIds: [], teacher: { firstName: "Carmen", lastName: "Diaz" } },
-    { id: "C003", name: "Dimensión Corporal", gradeLevel: "Transición", teacherId: "T002", description: "Desarrollo de la motricidad fina y gruesa.", studentIds: [], teacher: { firstName: "Jorge", lastName: "Perez" } },
-    { id: "C004", name: "Matemáticas 1", gradeLevel: "Primero", teacherId: "T003", description: "Conceptos básicos de matemáticas.", studentIds: [], teacher: { firstName: "Ana", lastName: "Gomez" } },
-    { id: "C005", name: "Lenguaje 1", gradeLevel: "Primero", teacherId: "T003", description: "Iniciación a la lectura y escritura.", studentIds: [], teacher: { firstName: "Ana", lastName: "Gomez" } },
-];
+import { useCourses } from '@/hooks/use-courses';
 
 
 export default function CurriculumPage() {
   const [isCreateCourseDialogOpen, setCreateCourseDialogOpen] = useState(false);
-  const isLoading = false;
-  const courses = coursesData;
+  const { data: courses, isLoading } = useCourses();
+
+  const handleSetCreateCourseDialogOpen = useCallback((isOpen: boolean) => {
+    setCreateCourseDialogOpen(isOpen);
+  }, []);
 
   return (
     <>
@@ -107,7 +103,7 @@ export default function CurriculumPage() {
       </div>
       <CreateCourseDialog
         isOpen={isCreateCourseDialogOpen}
-        onOpenChange={setCreateCourseDialogOpen}
+        onOpenChange={handleSetCreateCourseDialogOpen}
       />
     </>
   );

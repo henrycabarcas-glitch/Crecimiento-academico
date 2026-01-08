@@ -1,10 +1,10 @@
 
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { doc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import Image from 'next/image';
 import {
   Dialog,
@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, updateDocumentNonBlocking } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { Loader2, User as UserIcon } from 'lucide-react';
 import { User, UserRole } from '@/lib/types';
 
@@ -110,12 +110,10 @@ export function EditUserDialog({
         dataToUpdate.role = values.role;
       }
       
-      updateDocumentNonBlocking(userRef, dataToUpdate);
-
-      toast({
-        title: '¡Usuario Actualizado!',
-        description: `El usuario ${values.firstName} ha sido actualizado exitosamente.`,
-      });
+      await updateDoc(userRef, dataToUpdate);
+      
+      // The toast was here
+      
       onOpenChange(false);
     } catch (error) {
       console.error('Error updating user:', error);
@@ -129,10 +127,17 @@ export function EditUserDialog({
     }
   };
   
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      form.reset();
+    }
+    onOpenChange(open);
+  };
+  
   const isParent = user?.sourceCollection === 'parents';
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Editar Usuario</DialogTitle>
@@ -156,20 +161,33 @@ export function EditUserDialog({
                     <UserIcon className="w-12 h-12 text-muted-foreground" />
                     )}
                 </div>
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fileInputRef.current?.click()}
-                >
-                    Cambiar Foto
-                </Button>
-                <Input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    ref={fileInputRef}
-                    onChange={handlePhotoChange}
+                <FormField
+                    control={form.control}
+                    name="photoUrl"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormControl>
+                                <div>
+                                    <Input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        ref={fileInputRef}
+                                        onChange={handlePhotoChange}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => fileInputRef.current?.click()}
+                                    >
+                                        Cambiar Foto
+                                    </Button>
+                                </div>
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
                 />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -219,7 +237,7 @@ export function EditUserDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Rol</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isParent}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={isParent}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Seleccione un rol" />

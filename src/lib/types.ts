@@ -85,12 +85,13 @@ export interface Grade {
     competency?: string; // Denormalized from Achievement for easy access
 }
   
-export interface BehaviorLog {
-    id: number;
+export interface BehavioralObservation {
+    id: string;
     studentId: string;
     date: string;
-    observation: string;
-    observer: string;
+    description: string;
+    teacherId: string;
+    type: 'Positive' | 'Negative' | 'Needs Improvement';
 }
 
 export interface Achievement {

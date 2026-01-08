@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -23,8 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, DollarSign, Printer } from "lucide-react";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { Loader2, DollarSign, Printer, MoreVertical, User } from "lucide-react";
 import { Student, Payment } from "@/lib/types";
 import {
   Table,
@@ -44,11 +43,14 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useStudents } from "@/hooks/use-students";
 
 
 const paymentSchema = z.object({
@@ -61,15 +63,6 @@ const paymentSchema = z.object({
 
 type PaymentFormValues = z.infer<typeof paymentSchema>;
 
-const studentsData: Student[] = [
-    { id: "S001", firstName: "Sofía", lastName: "Rodriguez", gradeLevel: "Jardín", parentIds: [], enrollmentDate: '' , documentNumber: '1011121314', documentType: 'Registro Civil', dateOfBirth: '', gender: ''},
-    { id: "S002", firstName: "Mateo", lastName: "Garcia", gradeLevel: "Jardín", parentIds: [], enrollmentDate: '' , documentNumber: '', documentType: '', dateOfBirth: '', gender: ''},
-    { id: "S003", firstName: "Valentina", lastName: "Martinez", gradeLevel: "Transición", parentIds: [], enrollmentDate: '', documentNumber: '', documentType: '', dateOfBirth: '', gender: '' },
-    { id: "S004", firstName: "Santiago", lastName: "Lopez", gradeLevel: "Transición", parentIds: ["P004"], parents: [{id: 'P004', firstName: "Juan", lastName: "Lopez", email: "juan.l@example.com"}], enrollmentDate: '', documentNumber: '1015161718', documentType: 'Registro Civil', dateOfBirth: '', gender: '' },
-    { id: "S005", firstName: "Isabella", lastName: "Gonzalez", gradeLevel: "Pre-jardín", parentIds: [], enrollmentDate: '', documentNumber: '', documentType: '', dateOfBirth: '', gender: ''},
-    { id: "S007", firstName: "Camila", lastName: "Perez", gradeLevel: "Primero", parentIds: [], enrollmentDate: '' , documentNumber: '1019202122', documentType: 'Tarjeta de Identidad', dateOfBirth: '', gender: ''},
-];
-
 const initialPaymentsData: Payment[] = [
     { id: "PAY001", studentId: "S001", date: "2024-05-01", amount: 150000, method: "Transferencia Bancaria", receiptNumber: "TR-98765", concept: "Pensión Mayo" },
     { id: "PAY002", studentId: "S004", date: "2024-05-02", amount: 150000, method: "Efectivo", receiptNumber: "RC-11223", concept: "Pensión Mayo" },
@@ -80,12 +73,23 @@ const initialPaymentsData: Payment[] = [
 
 export default function BillingPage() {
   const { toast } = useToast();
+  const { data: students, isLoading: isLoadingStudents } = useStudents();
   const [selectedStudentId, setSelectedStudentId] = useState<string | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [payments, setPayments] = useState<Payment[]>(initialPaymentsData);
+  const [payments, setPayments] = useState<Payment[]>(() => {
+    if (typeof window !== 'undefined') {
+        const savedPayments = localStorage.getItem('recentPayments');
+        return savedPayments ? JSON.parse(savedPayments) : initialPaymentsData;
+    }
+    return initialPaymentsData;
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+        localStorage.setItem('recentPayments', JSON.stringify(payments));
+    }
+  }, [payments]);
   
-  const isLoadingStudents = false;
-  const students = studentsData;
 
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentSchema),
@@ -102,7 +106,7 @@ export default function BillingPage() {
 
   const paymentHistory = useMemo(() => {
     let studentMap: Record<string, Student> = {};
-    students.forEach(s => studentMap[s.id] = s);
+    students?.forEach(s => studentMap[s.id] = s);
 
     const paymentsWithStudentData = payments.map(p => ({
         ...p,
@@ -114,16 +118,7 @@ export default function BillingPage() {
     }
     return paymentsWithStudentData;
   }, [selectedStudentId, payments, students]);
-
-  const getStudentAvatar = (student?: Student) => {
-    if (!student) return { imageUrl: '', imageHint: '' };
-    const studentImageId = `student-${student.id.slice(-1)}`;
-    const image = PlaceHolderImages.find(img => img.id === studentImageId);
-    return image || { imageUrl: '', imageHint: '' };
-  };
   
-  const { imageUrl, imageHint } = getStudentAvatar(selectedStudent);
-
   function onSubmit(data: PaymentFormValues) {
     setIsSubmitting(true);
 
@@ -132,14 +127,14 @@ export default function BillingPage() {
         const newPayment: Payment = {
             id: `PAY${String(Date.now()).slice(-4)}`,
             studentId: data.studentId,
-            date: new Date().toISOString().split('T')[0],
+            date: new Date().toISOString(), // Use full ISO string
             amount: data.amount,
             method: data.method,
             concept: data.concept,
             receiptNumber: data.receiptNumber || `TR-${String(Date.now()).slice(-5)}`,
         };
 
-        setPayments(prevPayments => [...prevPayments, newPayment]);
+        setPayments(prevPayments => [newPayment, ...prevPayments]);
 
         toast({
             title: "Pago Registrado",
@@ -159,7 +154,6 @@ export default function BillingPage() {
   }
 
   return (
-    <TooltipProvider>
     <div className="flex flex-col h-full">
       <PageHeader title="Gestión de Tarifas y Facturación" />
       <main className="flex-1 space-y-6 p-4 md:p-6">
@@ -281,8 +275,10 @@ export default function BillingPage() {
                 <div className="flex items-center gap-4">
                     {selectedStudent && (
                         <Avatar className="h-12 w-12">
-                            <AvatarImage src={imageUrl} alt={`${selectedStudent.firstName} ${selectedStudent.lastName}`} data-ai-hint={imageHint}/>
-                            <AvatarFallback>{selectedStudent.firstName.charAt(0)}{selectedStudent.lastName.charAt(0)}</AvatarFallback>
+                            <AvatarImage src={selectedStudent.photoUrl} alt={`${selectedStudent.firstName} ${selectedStudent.lastName}`} />
+                            <AvatarFallback>
+                                {selectedStudent.photoUrl ? null : <User className="h-6 w-6" />}
+                            </AvatarFallback>
                         </Avatar>
                     )}
                     <div>
@@ -327,18 +323,22 @@ export default function BillingPage() {
                                         <TableCell>{payment.method}</TableCell>
                                         <TableCell className="text-right font-mono">${payment.amount.toLocaleString('es-CO')}</TableCell>
                                         <TableCell className="text-center">
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <Button asChild variant="ghost" size="icon">
-                                                        <Link href={`/dashboard/billing/receipt/${payment.id}`} target="_blank">
-                                                            <Printer className="h-4 w-4" />
-                                                        </Link>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon">
+                                                        <MoreVertical className="h-4 w-4" />
                                                     </Button>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>Imprimir Recibo</p>
-                                                </TooltipContent>
-                                            </Tooltip>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuLabel>Imprimir</DropdownMenuLabel>
+                                                    <DropdownMenuItem asChild>
+                                                        <Link href={`/dashboard/billing/receipt/${payment.id}`} target="_blank">Recibo (Carta)</Link>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem asChild>
+                                                        <Link href={`/dashboard/billing/pos-receipt/${payment.id}`} target="_blank">Recibo (POS)</Link>
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </TableCell>
                                     </TableRow>
                                 ))
@@ -358,6 +358,5 @@ export default function BillingPage() {
         </div>
       </main>
     </div>
-    </TooltipProvider>
   );
 }

@@ -7,14 +7,15 @@ import {
   SidebarInset,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { GraduationCap, Loader2, Home } from "lucide-react";
+import { GraduationCap, Loader2, Home, Image as ImageIcon } from "lucide-react";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import Link from "next/link";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { useUser, useAuth } from "@/firebase/provider";
+import { useUser, useAuth, useFirestore } from "@/firebase/provider";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +25,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
+import { SchoolSettings } from "@/lib/types";
+import { doc, getDoc } from "firebase/firestore";
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido.'),
@@ -35,22 +38,6 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 const userAvatar = PlaceHolderImages.find(img => img.id === 'user-avatar');
 
-function MushroomIcon(props: React.SVGProps<SVGSVGElement>) {
-    return (
-        <svg
-        {...props}
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        >
-            <path d="M12 2c-3.31 0-6 2.69-6 6v1h12V8c0-3.31-2.69-6-6-6zm-3.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm7 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z" fill="#E57373"/>
-            <path d="M6 10h12v10c0 1.1-.9 2-2 2H8c-1.1 0-2-.9-2-2V10z" fill="#F0F4C3"/>
-            <circle cx="12" cy="5.5" r="1.5" fill="#FFFFFF"/>
-        </svg>
-    )
-}
 
 export default function DashboardLayout({
   children,
@@ -60,9 +47,12 @@ export default function DashboardLayout({
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [schoolSettings, setSchoolSettings] = useState<SchoolSettings | null>(null);
+  const [isSettingsLoading, setIsSettingsLoading] = useState(true);
 
   const form = useForm<LoginFormValues>({
       resolver: zodResolver(loginSchema),
@@ -71,6 +61,26 @@ export default function DashboardLayout({
           password: '',
       },
   });
+
+  useEffect(() => {
+    async function fetchSettings() {
+      if (firestore) {
+        setIsSettingsLoading(true);
+        try {
+          const settingsRef = doc(firestore, "settings/main");
+          const docSnap = await getDoc(settingsRef);
+          if (docSnap.exists()) {
+            setSchoolSettings(docSnap.data() as SchoolSettings);
+          }
+        } catch (error) {
+          console.error("Error fetching school settings:", error);
+        } finally {
+          setIsSettingsLoading(false);
+        }
+      }
+    }
+    fetchSettings();
+  }, [firestore]);
 
   const handleLogin = async (values: LoginFormValues) => {
     setIsLoading(true);
@@ -105,7 +115,7 @@ export default function DashboardLayout({
     }
   }, [isUserLoading, user, auth]);
 
-  if (isUserLoading) {
+  if (isUserLoading || isSettingsLoading) {
       return (
           <div className="flex h-screen items-center justify-center">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -120,27 +130,31 @@ export default function DashboardLayout({
                  <form onSubmit={form.handleSubmit(handleLogin)}>
                     <CardHeader className="text-center">
                         <div className="flex items-center justify-center gap-3 mb-4">
-                            <div className="flex items-center justify-center size-12 rounded-lg bg-blue-500 text-white">
-                                <MushroomIcon className="size-7" />
+                            <div className="flex items-center justify-center size-16 rounded-lg bg-blue-500 text-white p-2">
+                                {schoolSettings?.logoUrl ? (
+                                    <Image src={schoolSettings.logoUrl} alt="Logo" width={56} height={56} className="object-contain" />
+                                ) : (
+                                    <GraduationCap className="size-8" />
+                                )}
                             </div>
                         </div>
-                        <CardTitle className="text-2xl text-blue-900 font-bold">Aldea Pitufa</CardTitle>
-                        <CardDescription>¡Pitufea tus datos para entrar!</CardDescription>
+                        <CardTitle className="text-2xl text-blue-900 font-bold">{schoolSettings?.schoolName || "Scholarly Growth"}</CardTitle>
+                        <CardDescription>¡Bienvenido! Ingrese sus credenciales.</CardDescription>
                     </CardHeader>
                     <CardContent className="grid gap-4">
                         <div className="grid gap-2">
-                            <Label htmlFor="email">Pitufo-Email</Label>
-                            <Input id="email" type="email" placeholder="papa.pitufo@aldea.com" required {...form.register('email')} />
+                            <Label htmlFor="email">Email</Label>
+                            <Input id="email" type="email" placeholder="usuario@ejemplo.com" required {...form.register('email')} />
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="password">Contraseña Pitufa</Label>
+                            <Label htmlFor="password">Contraseña</Label>
                             <Input id="password" type="password" required {...form.register('password')}/>
                         </div>
                     </CardContent>
                     <CardFooter>
                         <Button className="w-full bg-blue-600 hover:bg-blue-700" type="submit" disabled={isLoading}>
                             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            ¡Pitufar!
+                            Ingresar
                         </Button>
                     </CardFooter>
                 </form>
@@ -155,11 +169,15 @@ export default function DashboardLayout({
       <Sidebar>
         <SidebarHeader>
           <Link href="/dashboard" className="flex items-center gap-3 p-2 -ml-2">
-            <div className="flex items-center justify-center size-10 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-              <MushroomIcon className="size-6" />
+            <div className="flex items-center justify-center size-10 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground p-1">
+              {schoolSettings?.logoUrl ? (
+                  <Image src={schoolSettings.logoUrl} alt="Logo" width={36} height={36} className="object-contain" />
+              ) : (
+                  <GraduationCap className="size-6" />
+              )}
             </div>
             <h1 className="text-lg font-semibold font-headline tracking-tight text-sidebar-primary">
-              Aldea Pitufa
+              {schoolSettings?.schoolName || "Scholarly Growth"}
             </h1>
           </Link>
         </SidebarHeader>

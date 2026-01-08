@@ -20,6 +20,7 @@ export function useTeachers(): UseTeachersResult {
 
   const teacherData = useMemo(() => {
     if (!data) return null;
+    // Ensure every teacher object has a 'role' property.
     return data.map(t => ({
       ...t,
       role: t.role || 'Profesor'

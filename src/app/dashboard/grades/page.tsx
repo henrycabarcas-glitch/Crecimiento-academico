@@ -1,5 +1,6 @@
 'use client';
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { PageHeader } from "@/components/dashboard/page-header";
 import {
   Table,
@@ -11,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { FileDown, Filter, Loader2 } from "lucide-react";
+import { FileDown, Filter, Loader2, User, FileText, Printer } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -21,10 +22,12 @@ import {
 } from "@/components/ui/select";
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from "@/components/ui/card";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Student } from "@/lib/types";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { useStudents } from '@/hooks/use-students';
+import { Checkbox } from '@/components/ui/checkbox';
+
 
 // Mock data structure representing student grades with performance levels and associated achievements.
 const gradesData: Record<string, Record<string, { term: string; grade: string | number; competency: string }>> = {
@@ -49,18 +52,6 @@ const gradesData: Record<string, Record<string, { term: string; grade: string | 
         "Lenguaje 1": { term: "Trimestre 1", grade: 3.8, competency: "Identifica personajes principales en un cuento." }
     },
 };
-
-const studentsData: Student[] = [
-    { id: "S001", firstName: "Sofía", lastName: "Rodriguez", gradeLevel: "Jardín", parentIds: [], enrollmentDate: '' , documentNumber: '', documentType: '', dateOfBirth: '', gender: ''},
-    { id: "S002", firstName: "Mateo", lastName: "Garcia", gradeLevel: "Jardín", parentIds: [], enrollmentDate: '' , documentNumber: '', documentType: '', dateOfBirth: '', gender: ''},
-    { id: "S003", firstName: "Valentina", lastName: "Martinez", gradeLevel: "Transición", parentIds: [], enrollmentDate: '', documentNumber: '', documentType: '', dateOfBirth: '', gender: '' },
-    { id: "S004", firstName: "Santiago", lastName: "Lopez", gradeLevel: "Transición", parentIds: [], enrollmentDate: '', documentNumber: '', documentType: '', dateOfBirth: '', gender: '' },
-    { id: "S005", firstName: "Isabella", lastName: "Gonzalez", gradeLevel: "Pre-jardín", parentIds: [], enrollmentDate: '', documentNumber: '', documentType: '', dateOfBirth: '', gender: ''},
-    { id: "S006", firstName: "Lucas", lastName: "Hernandez", gradeLevel: "Pre-jardín", parentIds: [], enrollmentDate: '', documentNumber: '', documentType: '', dateOfBirth: '', gender: ''},
-    { id: "S007", firstName: "Camila", lastName: "Perez", gradeLevel: "Primero", parentIds: [], enrollmentDate: '', documentNumber: '', documentType: '', dateOfBirth: '', gender: ''},
-    { id: "S008", firstName: "Sebastian", lastName: "Gomez", gradeLevel: "Primero", parentIds: [], enrollmentDate: '', documentNumber: '', documentType: '', dateOfBirth: '', gender: ''},
-    { id: "S009", firstName: "Gabriela", lastName: "Diaz", gradeLevel: "Segundo", parentIds: [], enrollmentDate: '', documentNumber: '', documentType: '', dateOfBirth: '', gender: ''},
-];
 
 const subjectsByGrade: Record<string, string[]> = {
     'Pre-jardín': ['Dimensión Comunicativa', 'Dimensión Cognitiva', 'Dimensión Corporal', 'Dimensión Socio-Afectiva'],
@@ -96,14 +87,33 @@ const getGradeColorClass = (grade?: string | number) => {
 }
 
 export default function GradesPage() {
-  const isLoading = false;
+  const { data: allStudents, isLoading } = useStudents();
   const [localGrades, setLocalGrades] = useState(gradesData);
   const [selectedGrade, setSelectedGrade] = useState<string>("todos");
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("Trimestre 1");
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
 
-  const students = studentsData.filter(
-    (student) =>
-      selectedGrade === "todos" || student.gradeLevel === selectedGrade
-  );
+  const students = useMemo(() => {
+    if (!allStudents) return [];
+    if (selectedGrade === "todos") return allStudents;
+    return allStudents.filter((student) => student.gradeLevel === selectedGrade);
+  }, [allStudents, selectedGrade]);
+  
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+        setSelectedStudentIds(students.map(s => s.id));
+    } else {
+        setSelectedStudentIds([]);
+    }
+  };
+
+  const handleSelectStudent = (studentId: string, checked: boolean) => {
+    if (checked) {
+        setSelectedStudentIds(prev => [...prev, studentId]);
+    } else {
+        setSelectedStudentIds(prev => prev.filter(id => id !== studentId));
+    }
+  };
 
   const displayedSubjects = useMemo(() => {
     if (selectedGrade === 'todos') {
@@ -117,12 +127,6 @@ export default function GradesPage() {
   }, [selectedGrade, students]);
 
 
-  const getStudentAvatar = (studentId: string) => {
-    const studentImageId = `student-${studentId.slice(-1)}`;
-    const image = PlaceHolderImages.find(img => img.id === studentImageId);
-    return image || { imageUrl: '', imageHint: '' };
-  };
-
   const handleGradeChange = (studentId: string, subject: string, newGrade: string | number) => {
     setLocalGrades(prevGrades => ({
         ...prevGrades,
@@ -132,6 +136,7 @@ export default function GradesPage() {
                 ...prevGrades[studentId]?.[subject],
                 grade: newGrade,
                 competency: prevGrades[studentId]?.[subject]?.competency || 'Competencia por definir',
+                term: selectedPeriod,
             }
         }
     }));
@@ -161,7 +166,7 @@ export default function GradesPage() {
         return (
             <Input
                 type="number"
-                value={gradeInfo?.grade as number | ''}
+                value={gradeInfo?.grade ?? ''}
                 onChange={(e) => {
                     const value = e.target.value;
                     // Allow empty string to clear the input, otherwise parse as float
@@ -179,6 +184,7 @@ export default function GradesPage() {
     }
   }
 
+  const batchPrintUrl = `/dashboard/grades/batch-reports?period=${selectedPeriod}&studentIds=${selectedStudentIds.join(',')}`;
 
   return (
     <TooltipProvider>
@@ -207,20 +213,26 @@ export default function GradesPage() {
                           <SelectItem value="Quinto">Quinto</SelectItem>
                       </SelectContent>
                   </Select>
-                  <Select defaultValue="trimestre1">
+                  <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
                       <SelectTrigger className="w-[180px]">
                           <SelectValue placeholder="Seleccionar Periodo" />
                       </SelectTrigger>
                       <SelectContent>
-                          <SelectItem value="trimestre1">Trimestre 1</SelectItem>
-                          <SelectItem value="trimestre2">Trimestre 2</SelectItem>
-                          <SelectItem value="trimestre3">Trimestre 3</SelectItem>
+                          <SelectItem value="Trimestre 1">Trimestre 1</SelectItem>
+                          <SelectItem value="Trimestre 2">Trimestre 2</SelectItem>
+                          <SelectItem value="Trimestre 3">Trimestre 3</SelectItem>
                       </SelectContent>
                   </Select>
                   <div className="ml-auto flex items-center gap-2">
+                      <Button asChild variant="outline" size="sm" disabled={selectedStudentIds.length === 0}>
+                         <Link href={batchPrintUrl} target="_blank">
+                              <Printer className="mr-2 h-4 w-4" />
+                              Imprimir Selección ({selectedStudentIds.length})
+                          </Link>
+                      </Button>
                       <Button variant="outline" size="sm">
                           <FileDown className="mr-2 h-4 w-4" />
-                          Exportar Boletines
+                          Guardar Notas
                       </Button>
                   </div>
               </CardContent>
@@ -231,7 +243,13 @@ export default function GradesPage() {
               <Table>
                   <TableHeader>
                   <TableRow>
-                      <TableHead className="w-[250px] sticky left-0 bg-card z-10">Estudiante</TableHead>
+                      <TableHead className="w-[50px] sticky left-0 bg-card z-10 px-4">
+                        <Checkbox 
+                            checked={selectedStudentIds.length > 0 && selectedStudentIds.length === students.length}
+                            onCheckedChange={handleSelectAll}
+                        />
+                      </TableHead>
+                      <TableHead className="w-[300px] sticky left-12 bg-card z-10">Estudiante</TableHead>
                       {displayedSubjects.map(subject => (
                           <TableHead key={subject} className="text-center min-w-[170px]">{subject}</TableHead>
                       ))}
@@ -240,7 +258,7 @@ export default function GradesPage() {
                   <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={displayedSubjects.length + 1} className="text-center">
+                      <TableCell colSpan={displayedSubjects.length + 2} className="text-center">
                         <div className="flex justify-center items-center p-4">
                           <Loader2 className="h-6 w-6 animate-spin text-primary" />
                           <span className="ml-2">Cargando...</span>
@@ -248,16 +266,39 @@ export default function GradesPage() {
                       </TableCell>
                     </TableRow>
                   ) : students?.map((student) => {
-                      const { imageUrl, imageHint } = getStudentAvatar(student.id);
+                      const isSelected = selectedStudentIds.includes(student.id);
                       return (
-                        <TableRow key={student.id} className="transition-colors hover:bg-muted/50">
-                        <TableCell className="sticky left-0 bg-card z-10 font-medium">
-                            <div className="flex items-center gap-3">
-                            <Avatar className="h-9 w-9">
-                                <AvatarImage src={imageUrl} alt={`${student.firstName} ${student.lastName}`} data-ai-hint={imageHint}/>
-                                <AvatarFallback>{student.firstName.charAt(0)}{student.lastName.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div className="whitespace-nowrap">{student.firstName} {student.lastName}</div>
+                        <TableRow key={student.id} className="transition-colors hover:bg-muted/50" data-state={isSelected ? "selected" : ""}>
+                         <TableCell className="sticky left-0 bg-card z-10 px-4">
+                            <Checkbox 
+                                checked={isSelected}
+                                onCheckedChange={(checked) => handleSelectStudent(student.id, !!checked)}
+                            />
+                         </TableCell>
+                        <TableCell className="sticky left-12 bg-card z-10 font-medium">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-9 w-9">
+                                    {student.photoUrl ? (
+                                        <AvatarImage src={student.photoUrl} alt={`${student.firstName} ${student.lastName}`} />
+                                    ) : (
+                                        <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
+                                    )}
+                                </Avatar>
+                                <div className="whitespace-nowrap">{student.firstName} {student.lastName}</div>
+                              </div>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button asChild variant="ghost" size="icon">
+                                    <Link href={`/dashboard/grades/report-card/${student.id}?period=${selectedPeriod}`} target="_blank">
+                                        <FileText className="h-4 w-4" />
+                                    </Link>
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Generar Boletín</p>
+                                </TooltipContent>
+                              </Tooltip>
                             </div>
                         </TableCell>
                         {displayedSubjects.map(subject => {
@@ -297,5 +338,3 @@ export default function GradesPage() {
     </TooltipProvider>
   );
 }
-
-    

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, setDoc } from 'firebase/firestore';
 import {
   Dialog,
   DialogContent,
@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, setDocumentNonBlocking } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { useTeachers } from '@/hooks/use-teachers';
 import { Loader2 } from 'lucide-react';
 
@@ -90,7 +90,7 @@ export function CreateCourseDialog({
         studentIds: [],
       };
 
-      setDocumentNonBlocking(newCourseRef, newCourse, {});
+      await setDoc(newCourseRef, newCourse);
 
       toast({
         title: '¡Curso Creado!',
@@ -109,9 +109,16 @@ export function CreateCourseDialog({
       setIsLoading(false);
     }
   };
+  
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      form.reset();
+    }
+    onOpenChange(open);
+  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle>Crear Nuevo Curso</DialogTitle>

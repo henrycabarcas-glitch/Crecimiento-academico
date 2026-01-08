@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import Image from "next/image";
 
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -18,8 +18,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useFirestore, setDocumentNonBlocking } from "@/firebase";
+import { useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import {
   Form,
@@ -153,7 +152,7 @@ export default function SettingsPage() {
     setIsLoading(true);
     try {
       const settingsRef = doc(firestore, "settings", SETTINGS_DOC_ID);
-      setDocumentNonBlocking(settingsRef, values, { merge: true });
+      await setDoc(settingsRef, values, { merge: true });
       toast({
         title: "¡Configuración Guardada!",
         description: "La información del colegio ha sido actualizada.",
@@ -211,14 +210,14 @@ export default function SettingsPage() {
                   ) : (
                     <>
                       <div className="space-y-2 text-center">
-                        <div className="mx-auto w-32 h-32 rounded-lg border bg-muted flex items-center justify-center">
+                        <div className="mx-auto w-32 h-32 rounded-lg border bg-muted flex items-center justify-center overflow-hidden">
                           {logoUrl && logoUrl.startsWith('data:image') ? (
                             <Image
                               src={logoUrl}
                               alt="Logo del colegio"
                               width={128}
                               height={128}
-                              className="object-contain rounded-lg"
+                              className="object-contain"
                             />
                           ) : (
                             <ImageIcon className="w-12 h-12 text-muted-foreground" />
@@ -378,5 +377,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    

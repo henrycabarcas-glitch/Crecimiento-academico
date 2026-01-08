@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, setDoc } from 'firebase/firestore';
 import {
   Dialog,
   DialogContent,
@@ -23,7 +23,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, setDocumentNonBlocking, WithId } from '@/firebase';
+import { useFirestore, WithId } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 import { Course } from '@/lib/types';
 
@@ -69,7 +69,7 @@ export function CreateAchievementDialog({
         description: values.description,
       };
 
-      setDocumentNonBlocking(newAchievementRef, newAchievement, {});
+      await setDoc(newAchievementRef, newAchievement);
 
       toast({
         title: '¡Logro Creado!',
@@ -88,9 +88,16 @@ export function CreateAchievementDialog({
       setIsLoading(false);
     }
   };
+  
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      form.reset();
+    }
+    onOpenChange(open);
+  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle>Crear Nuevo Logro</DialogTitle>
@@ -129,5 +136,3 @@ export function CreateAchievementDialog({
     </Dialog>
   );
 }
-
-    

@@ -1,5 +1,6 @@
+
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,49 +17,31 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-const coursesData: (Course & { id: string })[] = [
-    { id: "C001", name: "Dimensión Comunicativa", gradeLevel: "Transición", teacherId: "T001", description: "Desarrollo del lenguaje oral y escrito.", studentIds: [] },
-    { id: "C002", name: "Dimensión Cognitiva", gradeLevel: "Transición", teacherId: "T001", description: "Desarrollo del pensamiento lógico-matemático.", studentIds: [] },
-    { id: "C003", name: "Dimensión Corporal", gradeLevel: "Transición", teacherId: "T002", description: "Desarrollo de la motricidad fina y gruesa.", studentIds: [] },
-    { id: "C004", name: "Matemáticas 1", gradeLevel: "Primero", teacherId: "T003", description: "Conceptos básicos de matemáticas.", studentIds: [] },
-    { id: "C005", name: "Lenguaje 1", gradeLevel: "Primero", teacherId: "T003", description: "Iniciación a la lectura y escritura.", studentIds: [] },
-];
-
-const achievementsData: Achievement[] = [
-    { id: "ACH001", courseId: "C001", period: "Trimestre 1", description: "Identifica las vocales y su sonido.", gradeLevel: "Transición" },
-    { id: "ACH002", courseId: "C002", period: "Trimestre 1", description: "Cuenta objetos hasta el número 20.", gradeLevel: "Transición" },
-    { id: "ACH003", courseId: "C003", period: "Trimestre 1", description: "Participa activamente en juegos grupales.", gradeLevel: "Transición" },
-    { id: "ACH004", courseId: "C001", period: "Trimestre 2", description: "Escribe su nombre sin ayuda.", gradeLevel: "Transición" },
-    { id: "ACH005", courseId: "C004", period: "Trimestre 1", description: "Resuelve sumas de una cifra.", gradeLevel: "Primero" },
-];
+import { useCourses } from '@/hooks/use-courses';
+import { useAchievements } from '@/hooks/use-achievements';
 
 export default function AchievementsPage() {
-    const [courses, setCourses] = useState<WithId<Course>[]>([]);
-    const [isLoadingCourses, setIsLoadingCourses] = useState(true);
+    const { data: courses, isLoading: isLoadingCourses } = useCourses();
     const [selectedCourseId, setSelectedCourseId] = useState<string | undefined>();
     const [selectedPeriod, setSelectedPeriod] = useState<string>('Trimestre 1');
     const [isCreateAchievementDialogOpen, setCreateAchievementDialogOpen] = useState(false);
 
-    useEffect(() => {
-        // Simulate fetching courses
-        setCourses(coursesData);
-        setIsLoadingCourses(false);
+    const { data: achievements, isLoading: isLoadingAchievements } = useAchievements(selectedCourseId);
+
+    const handleSetCreateAchievementDialogOpen = useCallback((isOpen: boolean) => {
+        setCreateAchievementDialogOpen(isOpen);
     }, []);
 
     useEffect(() => {
-        // Automatically select the first course when the list loads
-        if (!isLoadingCourses && courses && courses.length > 0 && !selectedCourseId) {
+        if (!selectedCourseId && courses && courses.length > 0) {
             setSelectedCourseId(courses[0].id);
         }
-    }, [courses, isLoadingCourses, selectedCourseId]);
+    }, [courses, selectedCourseId]);
     
     const selectedCourse = courses?.find(c => c.id === selectedCourseId);
 
-    // Simulate fetching/filtering achievements based on selection
-    const filteredAchievements = achievementsData.filter(
-        a => a.courseId === selectedCourseId && a.period === selectedPeriod
-    );
+    const filteredAchievements = achievements?.filter(a => a.period === selectedPeriod);
+    const isLoading = isLoadingCourses || (selectedCourseId ? isLoadingAchievements : false);
     
     return (
         <>
@@ -122,7 +105,7 @@ export default function AchievementsPage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {isLoadingCourses ? (
+                                        {isLoading ? (
                                             <TableRow>
                                                 <TableCell className="text-center">
                                                      <div className="flex justify-center items-center p-4">
@@ -160,7 +143,7 @@ export default function AchievementsPage() {
             {selectedCourse && (
                  <CreateAchievementDialog
                     isOpen={isCreateAchievementDialogOpen}
-                    onOpenChange={setCreateAchievementDialogOpen}
+                    onOpenChange={handleSetCreateAchievementDialogOpen}
                     course={selectedCourse}
                     period={selectedPeriod}
                 />

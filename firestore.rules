@@ -13,8 +13,7 @@
  * - Default Deny: All collections are locked down by default. Access is granted explicitly based on roles and relationships.
  * - Authenticated Listing: Top-level collections like `/students` or `/teachers` can be listed by any signed-in user
  *   to populate UI elements, but individual document reads are still restricted.
- * - Admin-Only Operations: The creation of core entities (Students, Courses, etc.) is reserved for administrators. These rules are
- *   currently disabled with a 'TODO' for future implementation of an admin role check.
+ * - Admin-Only Operations: The creation of core entities (Students, Courses, etc.) is reserved for administrators.
  *
  * Denormalization for Authorization: The security model relies heavily on denormalized data to function performantly.
  * - The `/students/{studentId}` document contains a `parentIds` array, which is critical for granting parents access to
@@ -51,14 +50,12 @@ service cloud.firestore {
     
     /**
     * Checks if the user has one of the specified management roles.
+    * ('Director', 'Directivo Docente', 'Administrador').
+    * It assumes the user's role is stored in their /teachers/{uid} document.
     */
     function hasManagementRole() {
-        // This assumes the user's role is stored in their teacher document.
-        // It will return false for non-teachers or if the document doesn't exist.
         let userDoc = get(/databases/$(database)/documents/teachers/$(request.auth.uid));
-        // TODO: This is a temporary measure to allow anonymous users to have admin rights.
-        // Replace with proper role management.
-        return (userDoc != null && userDoc.data.role in ['Director', 'Directivo Docente', 'Administrador']) || request.auth.token.email == null;
+        return isSignedIn() && userDoc.data.role in ['Director', 'Directivo Docente', 'Administrador'];
     }
 
 
@@ -74,7 +71,8 @@ service cloud.firestore {
      * Requires a 'get' call to the student document.
      */
     function isParentOfStudent(studentId) {
-      return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/students/$(studentId)).data.parentIds;
+      let studentDoc = get(/databases/$(database)/documents/students/$(studentId));
+      return isSignedIn() && request.auth.uid in studentDoc.data.parentIds;
     }
 
     /**
@@ -82,40 +80,38 @@ service cloud.firestore {
      * Requires a 'get' call to the course document.
      */
     function isTeacherOfCourse(courseId) {
-      let course = get(/databases/$(database)/documents/courses/$(courseId)).data;
-      return isSignedIn() && request.auth.uid == course.teacherId;
+      let courseDoc = get(/databases/$(database)/documents/courses/$(courseId));
+      return isSignedIn() && request.auth.uid == courseDoc.data.teacherId;
     }
 
 
     /**
      * @description Rules for the 'students' collection. Student documents contain sensitive information.
      * @path /students/{studentId}
-     * @allow (get) A parent requests their own child's document.
+     * @allow (get) A parent requests their own child's document, or a manager requests any.
      * @allow (list) Any authenticated user can list students to populate UI elements.
-     * @deny (get) A parent tries to access another parent's child's document.
-     * @principle Restricts access to student data to their legal guardians (parents) to ensure privacy. Creation and modification are restricted to admins.
+     * @allow (create, update, delete) Only managers can create, update or delete students.
+     * @principle Restricts access to student data to their legal guardians (parents) or managers to ensure privacy.
      */
     match /students/{studentId} {
-      allow get: if isParentOfStudent(studentId);
+      allow get: if isParentOfStudent(studentId) || hasManagementRole();
       allow list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
+      allow create, update, delete: if hasManagementRole();
     }
 
     /**
-     * @description Rules for the 'teachers' collection. Each teacher manages their own profile.
+     * @description Rules for the 'teachers' collection. Teacher profiles can be managed by themselves or by admins.
      * @path /teachers/{teacherId}
-     * @allow (create) A new teacher signs up and creates their own profile document, where the document ID matches their auth UID.
-     * @allow (update) An authenticated teacher updates their own profile information.
-     * @allow (list) Any authenticated user can list teachers to populate UI elements.
-     * @deny (get) A teacher tries to read another teacher's profile.
-     * @principle Enforces strict document ownership, allowing users to manage only their own data.
+     * @allow (get, list) Any authenticated user can read teacher profiles.
+     * @allow (create) New teacher profiles can only be created by managers.
+     * @allow (update, delete) An authenticated teacher can update their own profile, or a manager can update/delete any.
+     * @principle Allows self-service for teachers while giving full control to administrators.
      */
     match /teachers/{teacherId} {
-      allow get: if isOwner(teacherId) || hasManagementRole();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
+      allow get, list: if isSignedIn();
+      allow create: if hasManagementRole();
       allow update: if isExistingOwner(teacherId) || hasManagementRole();
-      allow delete: if isExistingOwner(teacherId) || hasManagementRole();
+      allow delete: if hasManagementRole();
     }
 
     /**
@@ -123,26 +119,23 @@ service cloud.firestore {
      * @path /courses/{courseId}
      */
     match /courses/{courseId} {
-        /**
-       * @description Course information is primarily managed by the assigned teacher.
+      /**
+       * @description Course information is primarily managed by the assigned teacher or managers.
        * @path /courses/{courseId}
-       * @allow (get) The teacher assigned to the course reads its details.
-       * @allow (update) The assigned teacher updates the course description.
-       * @deny (get) A student or parent tries to directly read a course document.
-       * @deny (list) Any user attempts to get a list of all available courses.
-       * @principle Secures course data by granting read/write access only to the assigned teacher.
+       * @allow (get, list) Any signed-in user can read course details.
+       * @allow (create, update, delete) Only the assigned teacher or a manager can manage the course.
+       * @principle Secures course data by granting write access only to the assigned teacher or an admin.
        */
-      allow get: if isTeacherOfCourse(courseId);
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if resource != null && (isTeacherOfCourse(resource.data.courseId) || hasManagementRole());
-      allow delete: if resource != null && (isTeacherOfCourse(resource.data.courseId) || hasManagementRole());
+      allow get, list: if isSignedIn();
+      allow create: if hasManagementRole();
+      allow update: if resource != null && (isTeacherOfCourse(courseId) || hasManagementRole());
+      allow delete: if hasManagementRole();
 
       /**
-       * @description Learning achievements for a specific course. Writable by the course teacher.
+       * @description Learning achievements for a specific course. Writable by the course teacher or managers.
        * @path /courses/{courseId}/achievements/{achievementId}
-       * @allow (create, list, update, delete) The course teacher can manage achievements for their own course.
-       * @principle Grants full control over achievements to the assigned teacher of the course.
+       * @allow (read, write) The course teacher or a manager can manage achievements for their own course.
+       * @principle Grants full control over achievements to the assigned teacher of the course or an admin.
        */
       match /achievements/{achievementId} {
         allow read, write: if isTeacherOfCourse(courseId) || hasManagementRole();
@@ -153,27 +146,30 @@ service cloud.firestore {
     /**
      * @description Rules for the 'parents' collection. Each parent or guardian manages their own profile.
      * @path /parents/{parentId}
-     * @allow (create) A new parent signs up and creates their own profile document, ensuring the document ID is their auth UID.
-     * @allow (update) An authenticated parent updates their own contact information.
-     * @deny (get) A parent attempts to read another parent's profile.
-     * @principle Enforces strict document ownership, allowing users to manage only their own data.
+     * @allow (get) Parent can read their own profile, managers can read any.
+     * @allow (list) Only managers can list all parents.
+     * @allow (create) New parent profiles are created by managers (usually during student creation).
+     * @allow (update) Parent can update their own profile, managers can update any.
+     * @principle Enforces self-service for parents while giving full control to administrators.
      */
     match /parents/{parentId} {
       allow get: if isOwner(parentId) || hasManagementRole();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
+      allow list: if hasManagementRole();
+      allow create: if hasManagementRole();
       allow update: if isExistingOwner(parentId) || hasManagementRole();
-      allow delete: if isExistingOwner(parentId) || hasManagementRole();
+      allow delete: if hasManagementRole();
     }
 
     /**
      * @description Rules for general school settings.
      * @path /settings/{settingId}
-     * @allow (get, list, write) Authenticated users with a management role can manage school settings.
-     * @principle Centralizes school-wide configuration and restricts access to administrators.
+     * @allow (read) Any authenticated user can read school settings.
+     * @allow (write) Only authenticated users with a management role can manage school settings.
+     * @principle Centralizes school-wide configuration and restricts modification to administrators.
      */
     match /settings/{settingId} {
-        allow read, write: if hasManagementRole();
+        allow read: if isSignedIn();
+        allow write: if hasManagementRole();
     }
 
 
@@ -184,54 +180,47 @@ service cloud.firestore {
     match /students/{studentId} {
 
       /**
-       * @description A student's academic report cards. Writable by the course teacher, readable by parents.
+       * @description A student's academic report cards. Writable by the course teacher, readable by parents/managers.
        * @path /students/{studentId}/reportCards/{reportCardId}
-       * @allow (create) The course teacher creates a new report card for an enrolled student.
-       * @allow (list) A parent lists all report cards for their child.
-       * @deny (create) A teacher tries to create a report card for a student not in their course.
+       * @allow (get) A parent, the relevant course teacher, or a manager can read a report card.
+       * @allow (list) A parent can list all report cards for their child. Managers can too.
+       * @allow (create, update, delete) Only the teacher of the course can manage the report card.
        * @principle Validates relational integrity, ensuring only the correct teacher can create records for enrolled students.
        */
       match /reportCards/{reportCardId} {
-        allow get: if isParentOfStudent(studentId) || isTeacherOfCourse(resource.data.courseId);
-        allow list: if isParentOfStudent(studentId);
+        allow get: if isParentOfStudent(studentId) || isTeacherOfCourse(resource.data.courseId) || hasManagementRole();
+        allow list: if isParentOfStudent(studentId) || hasManagementRole();
         allow create: if isSignedIn()
                       && request.resource.data.studentId == studentId
                       && isTeacherOfCourse(request.resource.data.courseId)
                       && studentId in get(/databases/$(database)/documents/courses/$(request.resource.data.courseId)).data.studentIds;
-        allow update: if resource != null && isTeacherOfCourse(resource.data.courseId);
-        allow delete: if resource != null && isTeacherOfCourse(resource.data.courseId);
+        allow update, delete: if resource != null && (isTeacherOfCourse(resource.data.courseId) || hasManagementRole());
       }
 
       /**
-       * @description A student's behavioral observations. Writable by the observing teacher, readable by parents.
+       * @description A student's behavioral observations. Writable by the observing teacher, readable by parents/managers.
        * @path /students/{studentId}/behavioralObservations/{behavioralObservationId}
-       * @allow (create) A teacher writes a new behavioral note for a student, stamping their own ID on the record.
-       * @allow (get) A parent reads an observation about their child.
-       * @deny (update) A teacher tries to modify another teacher's observation record.
-       * @principle Enforces creator ownership for modifications while allowing relevant guardians read access.
+       * @allow (get) A parent, the observing teacher, or a manager can read an observation.
+       * @allow (list) A parent or manager can list observations for the student.
+       * @allow (create, update, delete) Only the teacher who created the observation can manage it.
+       * @principle Enforces creator ownership for modifications while allowing relevant guardians and managers read access.
        */
       match /behavioralObservations/{behavioralObservationId} {
-        allow get: if isParentOfStudent(studentId) || isOwner(resource.data.teacherId);
-        allow list: if isParentOfStudent(studentId);
-        allow create: if isOwner(request.resource.data.teacherId) && request.resource.data.studentId == studentId;
-        allow update: if resource != null && isOwner(resource.data.teacherId);
-        allow delete: if resource != null && isOwner(resource.data.teacherId);
+        allow get, list: if isParentOfStudent(studentId) || hasManagementRole() || isOwner(resource.data.teacherId);
+        allow create: if (isOwner(request.resource.data.teacherId) || hasManagementRole()) && request.resource.data.studentId == studentId;
+        allow update, delete: if resource != null && (isOwner(resource.data.teacherId) || hasManagementRole());
       }
 
       /**
-       * @description A student's payment records. Writable by parents, readable by parents.
+       * @description A student's payment records. Writable by managers, readable by parents/managers.
        * @path /students/{studentId}/payments/{paymentId}
-       * @allow (create) A parent creates a new payment record for their child.
-       * @allow (list) A parent lists all past payments for their child.
-       * @deny (update) A parent tries to modify a payment record after its creation.
-       * @principle Allows parents to create financial records for their children but makes them immutable for data integrity.
+       * @allow (get, list) A parent or manager can view payment records.
+       * @allow (create) Only managers can create new payment records.
+       * @principle Restricts financial record creation to authorized administrative staff.
        */
       match /payments/{paymentId} {
-        allow get: if isParentOfStudent(studentId);
-        allow list: if isParentOfStudent(studentId);
-        allow create: if isParentOfStudent(studentId) && request.resource.data.studentId == studentId;
-        allow update: if false; // TODO: Define business logic for payment modification
-        allow delete: if false; // TODO: Define business logic for payment modification
+        allow get, list: if isParentOfStudent(studentId) || hasManagementRole();
+        allow create, update, delete: if hasManagementRole();
       }
     }
   }

@@ -14,6 +14,7 @@ export function useAchievements(courseId?: string): UseAchievementsResult {
   
   const achievementsCollection = useMemoFirebase(() => {
     if (!courseId) return null;
+    // This assumes achievements are a subcollection under a course
     return collection(firestore, 'courses', courseId, 'achievements');
   }, [firestore, courseId]);
 

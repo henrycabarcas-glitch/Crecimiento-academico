@@ -1,5 +1,6 @@
+
 'use client';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Image from 'next/image';
 import { PageHeader } from "@/components/dashboard/page-header";
 import {
@@ -24,10 +25,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CreateStudentDialog } from '@/components/dashboard/create-student-dialog';
 import { EditStudentDialog } from '@/components/dashboard/edit-student-dialog';
-import { WithId, useFirestore, deleteDocumentNonBlocking } from '@/firebase';
+import { WithId, useFirestore } from '@/firebase';
 import { Student } from '@/lib/types';
 import { DeleteConfirmationDialog } from '@/components/dashboard/delete-confirmation-dialog';
-import { doc } from 'firebase/firestore';
+import { doc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
 import { useStudents } from '@/hooks/use-students';
@@ -43,6 +44,21 @@ export default function StudentsPage() {
   const [isDeleteStudentDialogOpen, setDeleteStudentDialogOpen] = useState(false);
   const [studentToAction, setStudentToAction] = useState<WithId<Student> | null>(null);
   const [isDeleteLoading, setDeleteLoading] = useState(false);
+
+  const handleSetCreateStudentDialogOpen = useCallback((isOpen: boolean) => {
+    setCreateStudentDialogOpen(isOpen);
+  }, []);
+  
+  const handleSetEditStudentDialogOpen = useCallback((isOpen: boolean) => {
+    setEditStudentDialogOpen(isOpen);
+  }, []);
+
+  const handleSetDeleteStudentDialogOpen = useCallback((isOpen: boolean) => {
+    setDeleteStudentDialogOpen(isOpen);
+    if (!isOpen) {
+        setStudentToAction(null);
+    }
+  }, []);
 
 
   const handleEditClick = (student: WithId<Student>) => {
@@ -61,7 +77,7 @@ export default function StudentsPage() {
 
     try {
       const studentRef = doc(firestore, 'students', studentToAction.id);
-      deleteDocumentNonBlocking(studentRef);
+      await deleteDoc(studentRef);
 
       toast({
         title: '¡Estudiante Eliminado!',
@@ -185,19 +201,19 @@ export default function StudentsPage() {
       </div>
       <CreateStudentDialog
         isOpen={isCreateStudentDialogOpen}
-        onOpenChange={setCreateStudentDialogOpen}
+        onOpenChange={handleSetCreateStudentDialogOpen}
       />
       {studentToAction && (
         <EditStudentDialog
           student={studentToAction}
           isOpen={isEditStudentDialogOpen}
-          onOpenChange={setEditStudentDialogOpen}
+          onOpenChange={handleSetEditStudentDialogOpen}
         />
       )}
       {studentToAction && (
         <DeleteConfirmationDialog
           isOpen={isDeleteStudentDialogOpen}
-          onOpenChange={setDeleteStudentDialogOpen}
+          onOpenChange={handleSetDeleteStudentDialogOpen}
           onConfirm={handleDeleteConfirm}
           isLoading={isDeleteLoading}
           title={`¿Eliminar a ${studentToAction.firstName}?`}

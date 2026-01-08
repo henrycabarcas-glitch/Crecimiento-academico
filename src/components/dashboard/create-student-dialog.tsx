@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -184,9 +184,16 @@ export function CreateStudentDialog({
       setIsLoading(false);
     }
   };
+  
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      form.reset();
+    }
+    onOpenChange(open);
+  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>Crear Nuevo Estudiante (SIMAT)</DialogTitle>
@@ -212,7 +219,7 @@ export function CreateStudentDialog({
                             <FormItem>
                                 <FormLabel>Foto del Estudiante</FormLabel>
                                 <FormControl>
-                                    <>
+                                    <div>
                                         <Input
                                             type="file"
                                             accept="image/*"
@@ -227,7 +234,7 @@ export function CreateStudentDialog({
                                         >
                                             Subir Foto
                                         </Button>
-                                    </>
+                                    </div>
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -416,7 +423,7 @@ export function CreateStudentDialog({
                                 )}/>
                            </div>
                           <FormField control={form.control} name={`parents.${index}.email`} render={({ field }) => (
-                            <FormItem><FormLabel>Email del Acudiente</FormLabel><FormControl><Input type="email" placeholder="Ej: c.rodriguez@example.com" {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>Email del Acudiente</FormLabel><FormControl><Input type="email" placeholder="ej: c.rodriguez@example.com" {...field} /></FormControl><FormMessage /></FormItem>
                           )}/>
                           {fields.length > 1 && (
                               <Button variant="destructive" size="sm" onClick={() => remove(index)} className="absolute top-2 right-2">
