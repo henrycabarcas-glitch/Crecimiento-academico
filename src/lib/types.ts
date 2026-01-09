@@ -84,6 +84,51 @@ export interface Grade {
     grade: PerformanceGrade;
     competency?: string; // Denormalized from Achievement for easy access
 }
+
+export interface ReportCard {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ReportCard",
+      "type": "object",
+      "description": "Represents a student's report card for a specific period.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ReportCard entity."
+        },
+        "studentId": {
+          "type": "string",
+          "description": "Reference to Student. (Relationship: Student 1:N ReportCard)"
+        },
+        "courseId": {
+          "type": "string",
+          "description": "Reference to Course. (Relationship: Course 1:N ReportCard)"
+        },
+        "period": {
+          "type": "string",
+          "description": "The academic period the report card is for (e.g., 'First Semester', 'Second Quarter')."
+        },
+        "grade": {
+          "type": "number",
+          "description": "The final grade for the course in this period."
+        },
+        "comments": {
+          "type": "string",
+          "description": "Teacher's comments on the student's performance."
+        },
+        "dateIssued": {
+          "type": "string",
+          "description": "Date when the report card was issued.",
+          "format": "date"
+        }
+      },
+      "required": [
+        "id",
+        "studentId",
+        "courseId",
+        "period",
+        "grade"
+      ]
+    }
   
 export interface BehavioralObservation {
     id: string;

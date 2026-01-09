@@ -12,18 +12,18 @@ import { useCourses } from '@/hooks/use-courses';
 
 
 // Mock data structure representing student grades with performance levels and associated achievements.
-const gradesData: Record<string, Record<string, { term: string; grade: string | number; competency: string }>> = {
+const gradesData: Record<string, Record<string, { term: string; grades: (string | number)[]; final: string | number; competency: string }>> = {
     "S001": { 
-        "Dimensión Comunicativa": { term: "Trimestre 1", grade: "Superior", competency: "Identifica las vocales y su sonido de forma consistente." },
-        "Dimensión Cognitiva": { term: "Trimestre 1", grade: "Alto", competency: "Cuenta objetos hasta el número 20 sin dificultad y reconoce los números." },
-        "Dimensión Corporal": { term: "Trimestre 1", grade: "Alto", competency: "Muestra buena coordinación en actividades de motricidad gruesa." },
-        "Dimensión Estética": { term: "Trimestre 1", grade: "Superior", competency: "Disfruta y participa activamente en actividades artísticas, mostrando gran creatividad." },
+        "Dimensión Comunicativa": { term: "Trimestre 1", grades: ["Superior", "Alto", "Superior", "Alto"], final: "Superior", competency: "Identifica las vocales y su sonido de forma consistente." },
+        "Dimensión Cognitiva": { term: "Trimestre 1", grades: ["Alto", "Alto", "Básico", "Superior"], final: "Alto", competency: "Cuenta objetos hasta el número 20 sin dificultad y reconoce los números." },
+        "Dimensión Corporal": { term: "Trimestre 1", grades: ["Alto", "Alto", "Básico", "Superior"], final: "Alto", competency: "Muestra buena coordinación en actividades de motricidad gruesa." },
+        "Dimensión Estética": { term: "Trimestre 1", grades: ["Superior", "Superior", "Superior", "Superior"], final: "Superior", competency: "Disfruta y participa activamente en actividades artísticas, mostrando gran creatividad." },
     },
     "S007": {
-        "Matemáticas 1": { term: "Trimestre 1", grade: 4.5, competency: "Resuelve sumas y restas simples con precisión y comprende los conceptos básicos de la numeración." },
-        "Lenguaje 1": { term: "Trimestre 1", grade: 5.0, competency: "Lee frases cortas con fluidez y excelente comprensión. Demuestra un vocabulario avanzado para su edad." },
-        "Ciencias Naturales 1": { term: "Trimestre 1", grade: 4.8, competency: "Identifica y describe las partes de una planta y el ciclo de vida de los animales." },
-        "Ciencias Sociales 1": { term: "Trimestre 1", grade: 4.2, competency: "Reconoce los símbolos patrios y describe su comunidad local." },
+        "Matemáticas 1": { term: "Trimestre 1", grades: [4.5, 4.2, 5.0, 4.8], final: 4.6, competency: "Resuelve sumas y restas simples con precisión y comprende los conceptos básicos de la numeración." },
+        "Lenguaje 1": { term: "Trimestre 1", grades: [5.0, 4.8, 5.0, 5.0], final: 5.0, competency: "Lee frases cortas con fluidez y excelente comprensión. Demuestra un vocabulario avanzado para su edad." },
+        "Ciencias Naturales 1": { term: "Trimestre 1", grades: [4.8, 4.5, 5.0, 4.9], final: 4.8, competency: "Identifica y describe las partes de una planta y el ciclo de vida de los animales." },
+        "Ciencias Sociales 1": { term: "Trimestre 1", grades: [4.2, 4.0, 4.5, 4.3], final: 4.3, competency: "Reconoce los símbolos patrios y describe su comunidad local." },
     },
 };
 
@@ -64,7 +64,7 @@ export default function ReportCardPage() {
           .filter(([, gradeInfo]) => gradeInfo.term === period)
           .map(([subject, gradeInfo]) => ({
               subject,
-              grade: gradeInfo.grade,
+              grade: gradeInfo.final, // We use the final grade for the report card
               competency: gradeInfo.competency,
           }));
   }, [studentId, period]);

@@ -134,11 +134,13 @@ service cloud.firestore {
       /**
        * @description Learning achievements for a specific course. Writable by the course teacher or managers.
        * @path /courses/{courseId}/achievements/{achievementId}
-       * @allow (read, write) The course teacher or a manager can manage achievements for their own course.
+       * @allow (read) Any authenticated user can read achievements to see curriculum.
+       * @allow (write) The course teacher or a manager can manage achievements for their own course.
        * @principle Grants full control over achievements to the assigned teacher of the course or an admin.
        */
       match /achievements/{achievementId} {
-        allow read, write: if isTeacherOfCourse(courseId) || hasManagementRole();
+        allow read: if isSignedIn();
+        allow write: if isTeacherOfCourse(courseId) || hasManagementRole();
       }
     }
 
@@ -147,14 +149,14 @@ service cloud.firestore {
      * @description Rules for the 'parents' collection. Each parent or guardian manages their own profile.
      * @path /parents/{parentId}
      * @allow (get) Parent can read their own profile, managers can read any.
-     * @allow (list) Only managers can list all parents.
+     * @allow (list) Any signed-in user can list parents.
      * @allow (create) New parent profiles are created by managers (usually during student creation).
      * @allow (update) Parent can update their own profile, managers can update any.
      * @principle Enforces self-service for parents while giving full control to administrators.
      */
     match /parents/{parentId} {
       allow get: if isOwner(parentId) || hasManagementRole();
-      allow list: if hasManagementRole();
+      allow list: if isSignedIn();
       allow create: if hasManagementRole();
       allow update: if isExistingOwner(parentId) || hasManagementRole();
       allow delete: if hasManagementRole();
