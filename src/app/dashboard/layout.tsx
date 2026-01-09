@@ -23,9 +23,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, User } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
-import { SchoolSettings } from "@/lib/types";
+import { SchoolSettings, Teacher } from "@/lib/types";
 import { doc, getDoc } from "firebase/firestore";
 
 const loginSchema = z.object({
@@ -51,6 +51,7 @@ export default function DashboardLayout({
   const router = useRouter();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingRole, setIsCheckingRole] = useState(true);
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings | null>(null);
   const [isSettingsLoading, setIsSettingsLoading] = useState(true);
 
@@ -81,6 +82,34 @@ export default function DashboardLayout({
     }
     fetchSettings();
   }, [firestore]);
+  
+  useEffect(() => {
+    const checkUserRole = async (user: User) => {
+        if (!firestore) return;
+        setIsCheckingRole(true);
+        const teacherRef = doc(firestore, "teachers", user.uid);
+        const docSnap = await getDoc(teacherRef);
+
+        if (!docSnap.exists()) {
+            // If user is not in 'teachers', they are a parent. Redirect them.
+            router.replace('/parent-dashboard');
+        } else {
+            // User is a teacher/admin, allow them to stay.
+            setIsCheckingRole(false);
+        }
+    };
+    
+    if (!isUserLoading && user) {
+        if (user.isAnonymous) {
+            setIsCheckingRole(false); // Anonymous users stay on admin dash for dev
+        } else {
+            checkUserRole(user);
+        }
+    } else if (!isUserLoading && !user) {
+        setIsCheckingRole(false);
+    }
+  }, [user, isUserLoading, firestore, router]);
+
 
   const handleLogin = async (values: LoginFormValues) => {
     setIsLoading(true);
@@ -90,6 +119,7 @@ export default function DashboardLayout({
             title: "¡Bienvenido!",
             description: "Has iniciado sesión correctamente.",
         });
+        // The useEffect hook will handle redirection based on role
     } catch (error: any) {
         console.error('Login error:', error);
         let description = "Credenciales incorrectas. Por favor, inténtelo de nuevo.";
@@ -106,16 +136,7 @@ export default function DashboardLayout({
     }
   };
 
-
-  // Automatically sign in anonymously if no user is detected after loading.
-  useEffect(() => {
-    if (!isUserLoading && !user && auth) {
-      // This is disabled now to allow for manual login.
-      initiateAnonymousSignIn(auth); 
-    }
-  }, [isUserLoading, user, auth]);
-
-  if (isUserLoading || isSettingsLoading) {
+  if (isUserLoading || isSettingsLoading || isCheckingRole) {
       return (
           <div className="flex h-screen items-center justify-center">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />

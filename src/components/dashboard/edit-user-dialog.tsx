@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
@@ -49,7 +48,7 @@ const formSchema = z.object({
 type EditUserFormValues = z.infer<typeof formSchema>;
 
 interface EditUserDialogProps {
-  user: User;
+  user: User | null;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
 }
@@ -66,12 +65,19 @@ export function EditUserDialog({
 
   const form = useForm<EditUserFormValues>({
     resolver: zodResolver(formSchema),
+    defaultValues: {
+        firstName: '',
+        lastName: '',
+        email: '',
+        photoUrl: '',
+        role: 'Profesor',
+    }
   });
 
   const photoUrl = form.watch("photoUrl");
 
   useEffect(() => {
-    if (user) {
+    if (user && isOpen) {
       form.reset({
         firstName: user.firstName,
         lastName: user.lastName,
@@ -80,7 +86,7 @@ export function EditUserDialog({
         role: user.role,
       });
     }
-  }, [user, form]);
+  }, [user, isOpen, form]);
   
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -112,7 +118,10 @@ export function EditUserDialog({
       
       await updateDoc(userRef, dataToUpdate);
       
-      // The toast was here
+      toast({
+        title: '¡Usuario Actualizado!',
+        description: `La información de ${values.firstName} ha sido actualizada.`,
+      });
       
       onOpenChange(false);
     } catch (error) {
@@ -145,127 +154,129 @@ export function EditUserDialog({
             Actualice la información del usuario. El email no se puede cambiar si el usuario ya se ha autenticado.
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-             <div className="space-y-2 flex flex-col items-center">
-                <div className="w-24 h-24 rounded-full border bg-muted flex items-center justify-center overflow-hidden">
-                    {photoUrl ? (
-                    <Image
-                        src={photoUrl}
-                        alt="Avatar del usuario"
-                        width={96}
-                        height={96}
-                        className="object-cover w-full h-full"
+        {user && (
+            <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="space-y-2 flex flex-col items-center">
+                    <div className="w-24 h-24 rounded-full border bg-muted flex items-center justify-center overflow-hidden">
+                        {photoUrl ? (
+                        <Image
+                            src={photoUrl}
+                            alt="Avatar del usuario"
+                            width={96}
+                            height={96}
+                            className="object-cover w-full h-full"
+                        />
+                        ) : (
+                        <UserIcon className="w-12 h-12 text-muted-foreground" />
+                        )}
+                    </div>
+                    <FormField
+                        control={form.control}
+                        name="photoUrl"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormControl>
+                                    <div>
+                                        <Input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            ref={fileInputRef}
+                                            onChange={handlePhotoChange}
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => fileInputRef.current?.click()}
+                                        >
+                                            Cambiar Foto
+                                        </Button>
+                                    </div>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
                     />
-                    ) : (
-                    <UserIcon className="w-12 h-12 text-muted-foreground" />
-                    )}
                 </div>
+                <div className="grid grid-cols-2 gap-4">
                 <FormField
                     control={form.control}
-                    name="photoUrl"
+                    name="firstName"
                     render={({ field }) => (
-                        <FormItem>
-                            <FormControl>
-                                <div>
-                                    <Input
-                                        type="file"
-                                        accept="image/*"
-                                        className="hidden"
-                                        ref={fileInputRef}
-                                        onChange={handlePhotoChange}
-                                    />
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => fileInputRef.current?.click()}
-                                    >
-                                        Cambiar Foto
-                                    </Button>
-                                </div>
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
+                    <FormItem>
+                        <FormLabel>Nombres</FormLabel>
+                        <FormControl>
+                        <Input placeholder="Ej: Carmen" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
                     )}
                 />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
+                <FormField
+                    control={form.control}
+                    name="lastName"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Apellidos</FormLabel>
+                        <FormControl>
+                        <Input placeholder="Ej: Díaz" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                </div>
+                <FormField
                 control={form.control}
-                name="firstName"
+                name="email"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nombres</FormLabel>
+                    <FormItem>
+                    <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ej: Carmen" {...field} />
+                        <Input type="email" placeholder="ejemplo@correo.com" {...field} disabled />
                     </FormControl>
                     <FormMessage />
-                  </FormItem>
+                    </FormItem>
                 )}
-              />
-              <FormField
+                />
+                <FormField
                 control={form.control}
-                name="lastName"
+                name="role"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Apellidos</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ej: Díaz" {...field} />
-                    </FormControl>
+                    <FormItem>
+                    <FormLabel>Rol</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={isParent}>
+                        <FormControl>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Seleccione un rol" />
+                        </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                        <SelectItem value="Profesor">Profesor</SelectItem>
+                        <SelectItem value="Acudiente" disabled>Acudiente</SelectItem>
+                        <SelectItem value="Director">Director</SelectItem>
+                        <SelectItem value="Directivo Docente">Directivo Docente</SelectItem>
+                        <SelectItem value="Administrador">Administrador</SelectItem>
+                        </SelectContent>
+                    </Select>
                     <FormMessage />
-                  </FormItem>
+                    </FormItem>
                 )}
-              />
-            </div>
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input type="email" placeholder="ejemplo@correo.com" {...field} disabled />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="role"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Rol</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={isParent}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccione un rol" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Profesor">Profesor</SelectItem>
-                      <SelectItem value="Acudiente" disabled>Acudiente</SelectItem>
-                      <SelectItem value="Director">Director</SelectItem>
-                      <SelectItem value="Directivo Docente">Directivo Docente</SelectItem>
-                      <SelectItem value="Administrador">Administrador</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Guardar Cambios
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+                />
+                <DialogFooter>
+                <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+                    Cancelar
+                </Button>
+                <Button type="submit" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Guardar Cambios
+                </Button>
+                </DialogFooter>
+            </form>
+            </Form>
+        )}
       </DialogContent>
     </Dialog>
   );

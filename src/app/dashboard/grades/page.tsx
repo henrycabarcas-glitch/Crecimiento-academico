@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
@@ -245,7 +246,10 @@ export default function GradesPage() {
   return (
     <TooltipProvider>
       <div className="flex flex-col h-full">
-        <PageHeader title="Ingreso de Notas" />
+        <PageHeader 
+          title="Ingreso de Calificaciones"
+          description="Seleccione un grado y una materia para registrar y promediar las notas de los estudiantes."
+        />
         <main className="flex-1 space-y-6 p-4 md:p-6">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <div>
@@ -285,10 +289,6 @@ export default function GradesPage() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" className="bg-accent text-accent-foreground hover:bg-accent/90 hover:text-accent-foreground border-accent">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Agregar Columna
-                    </Button>
                     <Button className="bg-success text-success-foreground hover:bg-success/90">
                         <Save className="mr-2 h-4 w-4" />
                         Guardar Cambios

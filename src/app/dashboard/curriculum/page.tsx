@@ -36,7 +36,10 @@ export default function CurriculumPage() {
   return (
     <>
       <div className="flex flex-col h-full">
-        <PageHeader title="Planificación Curricular" />
+        <PageHeader 
+          title="Planificación Curricular"
+          description="Defina y organice las asignaturas, dimensiones y profesores para cada grado."
+        />
         <main className="flex-1 space-y-6 p-4 md:p-6">
            <div className="flex items-center justify-end gap-2">
               <Button onClick={() => setCreateCourseDialogOpen(true)}>

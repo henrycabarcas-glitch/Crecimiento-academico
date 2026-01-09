@@ -1,4 +1,3 @@
-
 'use client';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -33,6 +32,7 @@ import { useToast } from '@/hooks/use-toast';
 import { CreateUserForm } from '@/components/dashboard/create-user-form';
 import { hasManagementRole } from '@/lib/auth';
 import { useUsers } from '@/hooks/use-users';
+import { deleteAuthUser } from '@/ai/flows/delete-user-flow';
 
 
 export default function UsersPage() {
@@ -67,7 +67,7 @@ export default function UsersPage() {
 
   const handleUserCreated = useCallback(() => {
     setHasAdminUser(true); // Assume admin exists now
-    setCreateUserDialogOpen(false);
+    setCreateUserDialogOpen(false); // This will now be handled by the form itself, but good to keep
   }, []);
   
   useEffect(() => {
@@ -109,22 +109,25 @@ export default function UsersPage() {
     setDeleteLoading(true);
 
     try {
+      // Step 1: Delete the Firestore document
       const userRef = doc(firestore, userToAction.sourceCollection, userToAction.id);
       await deleteDoc(userRef);
+
+      // Step 2: Delete the Firebase Auth user by calling the server flow
+      await deleteAuthUser({ uid: userToAction.id });
       
       toast({
         title: '¡Usuario Eliminado!',
-        description: `${userToAction.firstName} ${userToAction.lastName} ha sido eliminado.`,
+        description: `${userToAction.firstName} ${userToAction.lastName} ha sido eliminado permanentemente.`,
       });
 
-      setDeleteUserDialogOpen(false);
-      setUserToAction(null);
-    } catch (error) {
+      handleSetDeleteUserDialogOpen(false);
+    } catch (error: any) {
       console.error("Error deleting user: ", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "No se pudo eliminar el usuario.",
+        description: `No se pudo eliminar el usuario. ${error.message}`,
       });
     } finally {
       setDeleteLoading(false);
@@ -135,7 +138,10 @@ export default function UsersPage() {
   return (
     <>
       <div className="flex flex-col h-full">
-        <PageHeader title="Gestión de Usuarios y Roles" />
+        <PageHeader 
+          title="Gestión de Usuarios y Roles"
+          description="Cree nuevos usuarios, asigne roles y administre los permisos de acceso al sistema."
+        />
         <main className="flex-1 space-y-6 p-4 md:p-6">
           {isLoading ? (
             <div className="flex justify-center items-center p-4">
@@ -154,6 +160,7 @@ export default function UsersPage() {
                 <CreateUserForm
                     isInitialAdmin
                     onUserCreated={handleUserCreated}
+                    onOpenChange={setCreateUserDialogOpen}
                 />
               </CardContent>
             </Card>
@@ -235,13 +242,13 @@ export default function UsersPage() {
         isOpen={isCreateUserDialogOpen}
         onOpenChange={handleSetCreateUserDialogOpen}
       />
-      {userToAction && (
-        <EditUserDialog
-          user={userToAction}
-          isOpen={isEditUserDialogOpen}
-          onOpenChange={handleSetEditUserDialogOpen}
-        />
-      )}
+      
+      <EditUserDialog
+        user={userToAction}
+        isOpen={isEditUserDialogOpen}
+        onOpenChange={handleSetEditUserDialogOpen}
+      />
+      
       {userToAction && (
         <DeleteConfirmationDialog
           isOpen={isDeleteUserDialogOpen}
@@ -249,7 +256,7 @@ export default function UsersPage() {
           onConfirm={handleDeleteConfirm}
           isLoading={isDeleteLoading}
           title={`¿Eliminar a ${userToAction.firstName}?`}
-          description="Esta acción es irreversible y eliminará al usuario del sistema. La cuenta de autenticación no se eliminará."
+          description="Esta acción es irreversible y eliminará al usuario permanentemente del sistema de autenticación y de la base de datos."
         />
       )}
     </>

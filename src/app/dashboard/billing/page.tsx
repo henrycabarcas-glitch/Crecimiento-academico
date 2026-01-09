@@ -155,7 +155,10 @@ export default function BillingPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <PageHeader title="Gestión de Tarifas y Facturación" />
+      <PageHeader 
+        title="Gestión de Facturación y Pagos"
+        description="Registre pagos, consulte historiales y genere recibos para los estudiantes."
+      />
       <main className="flex-1 space-y-6 p-4 md:p-6">
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-1">

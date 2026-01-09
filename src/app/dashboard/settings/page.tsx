@@ -182,7 +182,10 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <PageHeader title="Configuración del Colegio" />
+      <PageHeader 
+        title="Configuración Institucional"
+        description="Gestione la información clave y la identidad visual de su institución."
+      />
       <main className="flex-1 p-4 md:p-6">
         <div className="flex justify-center">
           <Card className="w-full max-w-2xl">

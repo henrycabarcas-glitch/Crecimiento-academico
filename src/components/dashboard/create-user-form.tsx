@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -52,14 +52,15 @@ const formSchema = z.object({
 type CreateUserFormValues = z.infer<typeof formSchema>;
 
 interface CreateUserFormProps {
-  onUserCreated: (createPromise: Promise<any>) => void;
+  onUserCreated?: () => void;
+  onOpenChange: (isOpen: boolean) => void;
   isInitialAdmin?: boolean;
-  isSubmitting?: boolean;
 }
 
-export function CreateUserForm({ onUserCreated, isInitialAdmin = false, isSubmitting = false }: CreateUserFormProps) {
+export function CreateUserForm({ onUserCreated, onOpenChange, isInitialAdmin = false }: CreateUserFormProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [generatedPassword, setGeneratedPassword] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -89,70 +90,71 @@ export function CreateUserForm({ onUserCreated, isInitialAdmin = false, isSubmit
   };
 
 
-  const onSubmit = (values: CreateUserFormValues) => {
-    const createPromise = (async () => {
-        try {
-            // Step 1: Call the server flow to create the Auth user and get UID + password
-            const { uid, password } = await createAuthUser({
-              email: values.email,
-              displayName: `${values.firstName} ${values.lastName}`,
-              photoUrl: values.photoUrl
-            });
+  const onSubmit = async (values: CreateUserFormValues) => {
+    setIsSubmitting(true);
+    try {
+        // Step 1: Call the server flow to create the Auth user and get UID + password
+        const { uid, password } = await createAuthUser({
+          email: values.email,
+          displayName: `${values.firstName} ${values.lastName}`,
+          photoUrl: values.photoUrl
+        });
 
-            // Step 2: Create the user profile in Firestore
-            const isTeacher = ['Profesor', 'Director', 'Directivo Docente', 'Administrador'].includes(values.role);
-            const collectionName = isTeacher ? 'teachers' : 'parents';
-            
-            const newDocRef = doc(firestore, collectionName, uid);
-            
-            const userData: any = {
-                id: newDocRef.id,
-                firstName: values.firstName,
-                lastName: values.lastName,
-                email: values.email,
-                photoUrl: values.photoUrl,
-            };
+        // Step 2: Create the user profile in Firestore
+        const isTeacher = ['Profesor', 'Director', 'Directivo Docente', 'Administrador'].includes(values.role);
+        const collectionName = isTeacher ? 'teachers' : 'parents';
+        
+        const newDocRef = doc(firestore, collectionName, uid);
+        
+        const userData: any = {
+            id: newDocRef.id,
+            firstName: values.firstName,
+            lastName: values.lastName,
+            email: values.email,
+            photoUrl: values.photoUrl,
+        };
 
-            if (isTeacher) {
-                userData.role = values.role as UserRole;
-            } else {
-                userData.studentIds = []; // Parents need a studentIds array
-            }
-            
-            await setDoc(newDocRef, userData);
-            
-            setGeneratedPassword(password);
-            setShowPasswordDialog(true);
-            
-            toast({
-                title: '¡Usuario Creado!',
-                description: `La cuenta para ${values.email} ha sido creada.`,
-            });
-
-            form.reset();
-        } catch (error: any) {
-            console.error('Error creating user:', error);
-            let description = 'No se pudo crear el usuario. Verifique la consola del servidor para más detalles.';
-            if (error.message.includes('EMAIL_EXISTS')) {
-                description = 'Este correo electrónico ya está en uso. Por favor, utilice otro.';
-            }
-
-            toast({
-                variant: 'destructive',
-                title: 'Error de Creación',
-                description,
-            });
-            // Re-throw the error so the dialog knows the operation failed
-            throw error;
+        if (isTeacher) {
+            userData.role = values.role as UserRole;
+        } else {
+            userData.studentIds = []; // Parents need a studentIds array
         }
-    })();
+        
+        await setDoc(newDocRef, userData);
+        
+        setGeneratedPassword(password);
+        
+        toast({
+            title: '¡Usuario Creado!',
+            description: `La cuenta para ${values.email} ha sido creada.`,
+        });
 
-    onUserCreated(createPromise);
+        onUserCreated?.(); // Callback for special cases like initial admin creation
+        setShowPasswordDialog(true); // Show password, which will pause the flow
+
+    } catch (error: any) {
+        console.error('Error creating user:', error);
+        let description = 'No se pudo crear el usuario. Verifique la consola del servidor para más detalles.';
+        if (error.message.includes('EMAIL_EXISTS')) {
+            description = 'Este correo electrónico ya está en uso. Por favor, utilice otro.';
+        }
+
+        toast({
+            variant: 'destructive',
+            title: 'Error de Creación',
+            description,
+        });
+        setIsSubmitting(false); // Make sure to stop loading on error
+    }
+    // Do NOT set isSubmitting to false here, it's handled in the dialog close or after error
   };
   
-  const handleClosePasswordDialog = useCallback(() => {
+  const handleClosePasswordDialog = () => {
     setShowPasswordDialog(false);
-  }, []);
+    setIsSubmitting(false);
+    form.reset();
+    onOpenChange(false); // Now we close the main dialog
+  };
 
   return (
     <>
@@ -258,7 +260,7 @@ export function CreateUserForm({ onUserCreated, isInitialAdmin = false, isSubmit
           />
           <DialogFooter className={isInitialAdmin ? 'pt-4' : ''}>
             {!isInitialAdmin && (
-              <Button type="button" variant="ghost" onClick={() => onUserCreated(Promise.reject(new Error('Cancelled by user')))} disabled={isSubmitting}>
+              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                   Cancelar
                 </Button>
             )}

@@ -46,7 +46,10 @@ export default function AchievementsPage() {
     return (
         <>
             <div className="flex flex-col h-full">
-                <PageHeader title="Gestión de Logros e Indicadores" />
+                <PageHeader 
+                  title="Gestión de Logros e Indicadores"
+                  description="Defina los logros académicos y las competencias para cada curso y período."
+                />
                 <main className="flex-1 space-y-6 p-4 md:p-6">
                     <Card className="fade-in-up">
                         <CardHeader>

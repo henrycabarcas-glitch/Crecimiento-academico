@@ -51,6 +51,9 @@ export default function StudentsPage() {
   
   const handleSetEditStudentDialogOpen = useCallback((isOpen: boolean) => {
     setEditStudentDialogOpen(isOpen);
+    if (!isOpen) {
+        setStudentToAction(null);
+    }
   }, []);
 
   const handleSetDeleteStudentDialogOpen = useCallback((isOpen: boolean) => {
@@ -84,8 +87,7 @@ export default function StudentsPage() {
         description: `${studentToAction.firstName} ${studentToAction.lastName} ha sido eliminado.`,
       });
 
-      setDeleteStudentDialogOpen(false);
-      setStudentToAction(null);
+      handleSetDeleteStudentDialogOpen(false);
     } catch (error) {
       console.error("Error deleting student: ", error);
       toast({
@@ -102,7 +104,10 @@ export default function StudentsPage() {
   return (
     <>
       <div className="flex flex-col h-full">
-        <PageHeader title="Gestión de Estudiantes" />
+        <PageHeader 
+          title="Gestión de Estudiantes"
+          description="Cree, edite y administre los perfiles y matrículas de los estudiantes."
+        />
         <main className="flex-1 space-y-6 p-4 md:p-6">
           <div className="flex items-center justify-end gap-2 fade-in-up">
               <Button onClick={() => setCreateStudentDialogOpen(true)}>
@@ -203,13 +208,13 @@ export default function StudentsPage() {
         isOpen={isCreateStudentDialogOpen}
         onOpenChange={handleSetCreateStudentDialogOpen}
       />
-      {studentToAction && (
-        <EditStudentDialog
-          student={studentToAction}
-          isOpen={isEditStudentDialogOpen}
-          onOpenChange={handleSetEditStudentDialogOpen}
-        />
-      )}
+      
+      <EditStudentDialog
+        student={studentToAction}
+        isOpen={isEditStudentDialogOpen}
+        onOpenChange={handleSetEditStudentDialogOpen}
+      />
+      
       {studentToAction && (
         <DeleteConfirmationDialog
           isOpen={isDeleteStudentDialogOpen}
