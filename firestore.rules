@@ -165,12 +165,12 @@ service cloud.firestore {
     /**
      * @description Rules for general school settings.
      * @path /settings/{settingId}
-     * @allow (read) Any authenticated user can read school settings.
+     * @allow (read) Anyone can read school settings to display public info like name and logo on login.
      * @allow (write) Only authenticated users with a management role can manage school settings.
-     * @principle Centralizes school-wide configuration and restricts modification to administrators.
+     * @principle Centralizes school-wide configuration and restricts modification to administrators, while allowing public read access for UI purposes.
      */
     match /settings/{settingId} {
-        allow read: if isSignedIn();
+        allow read: if true;
         allow write: if hasManagementRole();
     }
 

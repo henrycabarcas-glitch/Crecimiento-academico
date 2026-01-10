@@ -51,9 +51,6 @@ export default function StudentsPage() {
   
   const handleSetEditStudentDialogOpen = useCallback((isOpen: boolean) => {
     setEditStudentDialogOpen(isOpen);
-    if (!isOpen) {
-        setStudentToAction(null);
-    }
   }, []);
 
   const handleSetDeleteStudentDialogOpen = useCallback((isOpen: boolean) => {
@@ -87,7 +84,8 @@ export default function StudentsPage() {
         description: `${studentToAction.firstName} ${studentToAction.lastName} ha sido eliminado.`,
       });
 
-      handleSetDeleteStudentDialogOpen(false);
+      setDeleteStudentDialogOpen(false);
+      setStudentToAction(null);
     } catch (error) {
       console.error("Error deleting student: ", error);
       toast({
@@ -208,13 +206,13 @@ export default function StudentsPage() {
         isOpen={isCreateStudentDialogOpen}
         onOpenChange={handleSetCreateStudentDialogOpen}
       />
-      
-      <EditStudentDialog
-        student={studentToAction}
-        isOpen={isEditStudentDialogOpen}
-        onOpenChange={handleSetEditStudentDialogOpen}
-      />
-      
+      {studentToAction && (
+        <EditStudentDialog
+          student={studentToAction}
+          isOpen={isEditStudentDialogOpen}
+          onOpenChange={handleSetEditStudentDialogOpen}
+        />
+      )}
       {studentToAction && (
         <DeleteConfirmationDialog
           isOpen={isDeleteStudentDialogOpen}

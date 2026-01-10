@@ -67,7 +67,7 @@ export default function UsersPage() {
 
   const handleUserCreated = useCallback(() => {
     setHasAdminUser(true); // Assume admin exists now
-    setCreateUserDialogOpen(false); // This will now be handled by the form itself, but good to keep
+    setCreateUserDialogOpen(false);
   }, []);
   
   useEffect(() => {
@@ -121,7 +121,8 @@ export default function UsersPage() {
         description: `${userToAction.firstName} ${userToAction.lastName} ha sido eliminado permanentemente.`,
       });
 
-      handleSetDeleteUserDialogOpen(false);
+      setDeleteUserDialogOpen(false);
+      setUserToAction(null);
     } catch (error: any) {
       console.error("Error deleting user: ", error);
       toast({
@@ -160,7 +161,6 @@ export default function UsersPage() {
                 <CreateUserForm
                     isInitialAdmin
                     onUserCreated={handleUserCreated}
-                    onOpenChange={setCreateUserDialogOpen}
                 />
               </CardContent>
             </Card>
@@ -242,13 +242,13 @@ export default function UsersPage() {
         isOpen={isCreateUserDialogOpen}
         onOpenChange={handleSetCreateUserDialogOpen}
       />
-      
-      <EditUserDialog
-        user={userToAction}
-        isOpen={isEditUserDialogOpen}
-        onOpenChange={handleSetEditUserDialogOpen}
-      />
-      
+      {userToAction && (
+        <EditUserDialog
+          user={userToAction}
+          isOpen={isEditUserDialogOpen}
+          onOpenChange={handleSetEditUserDialogOpen}
+        />
+      )}
       {userToAction && (
         <DeleteConfirmationDialog
           isOpen={isDeleteUserDialogOpen}

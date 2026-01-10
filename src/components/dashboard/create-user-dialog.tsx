@@ -1,4 +1,6 @@
+
 'use client';
+import { useCallback, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -18,9 +20,27 @@ export function CreateUserDialog({
   isOpen,
   onOpenChange,
 }: CreateUserDialogProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleUserCreated = useCallback(async (createPromise: Promise<any>) => {
+    setIsSubmitting(true);
+    try {
+      await createPromise;
+      onOpenChange(false);
+    } catch (error) {
+      // Error is already handled and toasted in the form
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [onOpenChange]);
+
+  const handleOpenChange = (open: boolean) => {
+    if (isSubmitting) return; // Prevent closing while submitting
+    onOpenChange(open);
+  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Crear Nuevo Usuario</DialogTitle>
@@ -28,7 +48,7 @@ export function CreateUserDialog({
             Complete el formulario para registrar un nuevo usuario.
           </DialogDescription>
         </DialogHeader>
-        <CreateUserForm onOpenChange={onOpenChange} />
+        <CreateUserForm onUserCreated={handleUserCreated} isSubmitting={isSubmitting} />
       </DialogContent>
     </Dialog>
   );

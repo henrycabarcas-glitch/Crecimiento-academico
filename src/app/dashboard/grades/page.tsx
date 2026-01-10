@@ -318,8 +318,8 @@ export default function GradesPage() {
                                         <TableHead className="text-center">Nota 2</TableHead>
                                         <TableHead className="text-center">Nota 3</TableHead>
                                         <TableHead className="text-center">Nota 4</TableHead>
-                                        <TableHead className="text-center text-accent">Promedio</TableHead>
-                                        <TableHead className="text-center text-success">Desempeño</TableHead>
+                                        <TableHead className="text-center text-accent-foreground bg-accent/50 font-semibold">Promedio</TableHead>
+                                        <TableHead className="text-center text-success bg-success/20 font-semibold">Desempeño</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>

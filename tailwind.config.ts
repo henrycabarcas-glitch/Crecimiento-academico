@@ -1,6 +1,6 @@
 import type {Config} from 'tailwindcss';
 
-export default {
+const config: Config = {
   darkMode: ['class'],
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
@@ -10,8 +10,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['"Nunito"', 'sans-serif'],
-        headline: ['"Nunito"', 'sans-serif'],
+        body: ['"Quicksand"', 'sans-serif'],
+        headline: ['"Quicksand"', 'sans-serif'],
+        sans: ['"Quicksand"', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {
@@ -74,6 +75,8 @@ export default {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+        xl: 'calc(var(--radius) + 2px)',
+        '2xl': 'calc(var(--radius) + 8px)',
       },
       keyframes: {
         'accordion-down': {
@@ -100,4 +103,8 @@ export default {
     },
   },
   plugins: [require('tailwindcss-animate')],
-} satisfies Config;
+};
+
+export default config;
+
+    
