@@ -109,7 +109,7 @@ service cloud.firestore {
      */
     match /teachers/{teacherId} {
       allow get, list: if isSignedIn();
-      allow create: if hasManagementRole();
+      allow create: if isSignedIn();
       allow update: if isExistingOwner(teacherId) || hasManagementRole();
       allow delete: if hasManagementRole();
     }

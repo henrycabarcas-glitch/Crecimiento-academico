@@ -23,21 +23,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useAuth } from '@/firebase';
 import { Loader2, User as UserIcon } from 'lucide-react';
 import { DialogFooter } from '../ui/dialog';
 import { UserRole } from '@/lib/types';
-import { createAuthUser } from '@/ai/flows/user-management-flow';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-
+import { createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 
 const formSchema = z.object({
   firstName: z.string().min(1, 'El nombre es requerido.'),
@@ -60,8 +50,7 @@ interface CreateUserFormProps {
 export function CreateUserForm({ onUserCreated, isInitialAdmin = false, isSubmitting = false }: CreateUserFormProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
-  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
-  const [generatedPassword, setGeneratedPassword] = useState('');
+  const auth = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<CreateUserFormValues>({
@@ -92,14 +81,10 @@ export function CreateUserForm({ onUserCreated, isInitialAdmin = false, isSubmit
   const onSubmit = (values: CreateUserFormValues) => {
     const createPromise = (async () => {
         try {
-            // Step 1: Call the server flow to create the Auth user and get UID + password
-            const { uid, password } = await createAuthUser({
-              email: values.email,
-              displayName: `${values.firstName} ${values.lastName}`,
-              photoUrl: values.photoUrl
-            });
+            const tempPassword = Math.random().toString(36).slice(-8);
+            const userCredential = await createUserWithEmailAndPassword(auth, values.email, tempPassword);
+            const { uid } = userCredential.user;
 
-            // Step 2: Create the user profile in Firestore
             const isTeacher = ['Profesor', 'Director', 'Directivo Docente', 'Administrador'].includes(values.role);
             const collectionName = isTeacher ? 'teachers' : 'parents';
             
@@ -110,31 +95,32 @@ export function CreateUserForm({ onUserCreated, isInitialAdmin = false, isSubmit
                 firstName: values.firstName,
                 lastName: values.lastName,
                 email: values.email,
-                photoUrl: values.photoUrl,
+                photoUrl: values.photoUrl || '',
             };
 
             if (isTeacher) {
                 userData.role = values.role as UserRole;
             } else {
-                userData.studentIds = []; // Parents need a studentIds array
+                userData.studentIds = [];
             }
             
             await setDoc(newDocRef, userData);
-            
-            setGeneratedPassword(password);
-            setShowPasswordDialog(true);
+
+            await sendPasswordResetEmail(auth, values.email);
             
             toast({
                 title: '¡Usuario Creado!',
-                description: `La cuenta para ${values.email} ha sido creada.`,
+                description: `La cuenta para ${values.email} ha sido creada. Se ha enviado un correo para que establezca su contraseña.`,
             });
 
             form.reset();
         } catch (error: any) {
             console.error('Error creating user:', error);
-            let description = 'No se pudo crear el usuario. Verifique la consola del servidor para más detalles.';
-            if (error.message.includes('EMAIL_EXISTS')) {
+            let description = 'No se pudo crear el usuario. Verifique la consola para más detalles.';
+            if (error.code === 'auth/email-already-in-use') {
                 description = 'Este correo electrónico ya está en uso. Por favor, utilice otro.';
+            } else if (error.code === 'auth/invalid-email') {
+                description = 'El formato del correo electrónico no es válido.';
             }
 
             toast({
@@ -142,17 +128,13 @@ export function CreateUserForm({ onUserCreated, isInitialAdmin = false, isSubmit
                 title: 'Error de Creación',
                 description,
             });
-            // Re-throw the error so the dialog knows the operation failed
-            throw error;
+            // Do not re-throw the error, as it's handled by the toast.
         }
     })();
 
     onUserCreated(createPromise);
   };
   
-  const handleClosePasswordDialog = useCallback(() => {
-    setShowPasswordDialog(false);
-  }, []);
 
   return (
     <>
@@ -179,6 +161,7 @@ export function CreateUserForm({ onUserCreated, isInitialAdmin = false, isSubmit
                     className="hidden"
                     ref={fileInputRef}
                     onChange={handlePhotoChange}
+                    disabled={isSubmitting}
                 />
                 <Button
                     type="button"
@@ -269,23 +252,6 @@ export function CreateUserForm({ onUserCreated, isInitialAdmin = false, isSubmit
           </DialogFooter>
         </form>
       </Form>
-      
-      <AlertDialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Contraseña Temporal del Usuario</AlertDialogTitle>
-            <AlertDialogDescription>
-              Por favor, copie esta contraseña y entréguesela al nuevo usuario. Deberá usarla para su primer inicio de sesión.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="p-4 bg-muted rounded-md text-center">
-            <code className="text-lg font-mono font-bold tracking-widest">{generatedPassword}</code>
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={handleClosePasswordDialog}>Entendido</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }

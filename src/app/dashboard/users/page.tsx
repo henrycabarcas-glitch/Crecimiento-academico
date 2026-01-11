@@ -32,7 +32,6 @@ import { useToast } from '@/hooks/use-toast';
 import { CreateUserForm } from '@/components/dashboard/create-user-form';
 import { hasManagementRole } from '@/lib/auth';
 import { useUsers } from '@/hooks/use-users';
-import { deleteAuthUser } from '@/ai/flows/delete-user-flow';
 
 
 export default function UsersPage() {
@@ -109,26 +108,25 @@ export default function UsersPage() {
     setDeleteLoading(true);
 
     try {
-      // Step 1: Delete the Firestore document
+      // For now, we only delete the Firestore document. 
+      // Deleting the Auth user is a sensitive operation and should be handled with care,
+      // potentially through a backend function that verifies permissions.
       const userRef = doc(firestore, userToAction.sourceCollection, userToAction.id);
       await deleteDoc(userRef);
-
-      // Step 2: Delete the Firebase Auth user by calling the server flow
-      await deleteAuthUser({ uid: userToAction.id });
       
       toast({
         title: '¡Usuario Eliminado!',
-        description: `${userToAction.firstName} ${userToAction.lastName} ha sido eliminado permanentemente.`,
+        description: `El registro de ${userToAction.firstName} ${userToAction.lastName} ha sido eliminado de la base de datos. La cuenta de autenticación aún existe.`,
       });
 
       setDeleteUserDialogOpen(false);
       setUserToAction(null);
     } catch (error: any) {
-      console.error("Error deleting user: ", error);
+      console.error("Error deleting user document: ", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: `No se pudo eliminar el usuario. ${error.message}`,
+        description: `No se pudo eliminar el registro del usuario. ${error.message}`,
       });
     } finally {
       setDeleteLoading(false);
@@ -256,7 +254,7 @@ export default function UsersPage() {
           onConfirm={handleDeleteConfirm}
           isLoading={isDeleteLoading}
           title={`¿Eliminar a ${userToAction.firstName}?`}
-          description="Esta acción es irreversible y eliminará al usuario permanentemente del sistema de autenticación y de la base de datos."
+          description="Esta acción es irreversible y eliminará el registro del usuario. La cuenta de autenticación no se verá afectada."
         />
       )}
     </>

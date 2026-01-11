@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useUser } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -8,17 +9,20 @@ export default function ParentDashboardPage() {
     const { user, isUserLoading } = useUser();
     const router = useRouter();
 
-    if (isUserLoading) {
+    useEffect(() => {
+        // Redirige solo cuando la carga ha terminado y no hay usuario.
+        if (!isUserLoading && !user) {
+            router.replace('/dashboard');
+        }
+    }, [user, isUserLoading, router]);
+
+    if (isUserLoading || !user) {
+        // Muestra un loader mientras se verifica el usuario o mientras se redirige.
         return (
             <div className="flex h-screen items-center justify-center">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>
         );
-    }
-
-    if (!user) {
-        router.replace('/dashboard');
-        return null;
     }
 
     return (

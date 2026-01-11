@@ -20,15 +20,15 @@ import {
 const chartConfig = {
   Superior: {
     label: "Superior",
-    color: "hsl(var(--primary))",
+    color: "hsl(var(--chart-2))",
   },
   Alto: {
     label: "Alto",
-    color: "hsl(var(--accent))",
+    color: "hsl(var(--chart-1))",
   },
   Básico: {
     label: "Básico",
-    color: "hsl(var(--secondary))",
+    color: "hsl(var(--chart-4))",
   },
 }
 
