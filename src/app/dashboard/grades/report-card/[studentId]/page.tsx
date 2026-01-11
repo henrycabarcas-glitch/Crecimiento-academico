@@ -14,10 +14,10 @@ import { useCourses } from '@/hooks/use-courses';
 // Mock data structure representing student grades with performance levels and associated achievements.
 const gradesData: Record<string, Record<string, { term: string; grades: (string | number)[]; final: string | number; competency: string }>> = {
     "S001": { 
-        "Dimensión Comunicativa": { term: "Trimestre 1", grades: ["Superior", "Alto", "Superior", "Alto"], final: "Superior", competency: "Identifica las vocales y su sonido de forma consistente." },
-        "Dimensión Cognitiva": { term: "Trimestre 1", grades: ["Alto", "Alto", "Básico", "Superior"], final: "Alto", competency: "Cuenta objetos hasta el número 20 sin dificultad y reconoce los números." },
-        "Dimensión Corporal": { term: "Trimestre 1", grades: ["Alto", "Alto", "Básico", "Superior"], final: "Alto", competency: "Muestra buena coordinación en actividades de motricidad gruesa." },
-        "Dimensión Estética": { term: "Trimestre 1", grades: ["Superior", "Superior", "Superior", "Superior"], final: "Superior", competency: "Disfruta y participa activamente en actividades artísticas, mostrando gran creatividad." },
+        "Lecto escritura": { term: "Trimestre 1", grades: ["Superior", "Alto", "Superior", "Alto"], final: "Superior", competency: "Identifica las vocales y su sonido de forma consistente." },
+        "Pre matemáticas": { term: "Trimestre 1", grades: ["Alto", "Alto", "Básico", "Superior"], final: "Alto", competency: "Cuenta objetos hasta el número 20 sin dificultad y reconoce los números." },
+        "Expresión corporal": { term: "Trimestre 1", grades: ["Alto", "Alto", "Básico", "Superior"], final: "Alto", competency: "Muestra buena coordinación en actividades de motricidad gruesa." },
+        "Ingles": { term: "Trimestre 1", grades: ["Superior", "Superior", "Superior", "Superior"], final: "Superior", competency: "Disfruta y participa activamente en actividades artísticas, mostrando gran creatividad." },
     },
     "S007": {
         "Matemáticas 1": { term: "Trimestre 1", grades: [4.5, 4.2, 5.0, 4.8], final: 4.6, competency: "Resuelve sumas y restas simples con precisión y comprende los conceptos básicos de la numeración." },

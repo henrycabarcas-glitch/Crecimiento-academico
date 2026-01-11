@@ -34,16 +34,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 // Mock data structure representing student grades with performance levels and associated achievements.
 const gradesData: Record<string, Record<string, { term: string; grades: (string | number)[]; final: string | number; competency: string }>> = {
     "S001": {
-        "Dimensión Comunicativa": { term: "Trimestre 1", grades: ["Superior", "Alto", "Superior", "Alto"], final: "Superior", competency: "Identifica las vocales y su sonido." },
-        "Dimensión Cognitiva": { term: "Trimestre 1", grades: ["Alto", "Alto", "Básico", "Superior"], final: "Alto", competency: "Cuenta objetos hasta el número 20." }
+        "Lecto escritura": { term: "Trimestre 1", grades: ["Superior", "Alto", "Superior", "Alto"], final: "Superior", competency: "Identifica las vocales y su sonido." },
+        "Pre matemáticas": { term: "Trimestre 1", grades: ["Alto", "Alto", "Básico", "Superior"], final: "Alto", competency: "Cuenta objetos hasta el número 20." }
     },
     "S002": {
-        "Dimensión Comunicativa": { term: "Trimestre 1", grades: ["Alto", "Básico", "Básico", "Alto"], final: "Alto", competency: "Reconoce su nombre escrito." },
-        "Dimensión Corporal": { term: "Trimestre 1", grades: ["Básico", "Básico", "Bajo", "Básico"], final: "Básico", competency: "Muestra dificultad para atarse los cordones." }
+        "Lecto escritura": { term: "Trimestre 1", grades: ["Alto", "Básico", "Básico", "Alto"], final: "Alto", competency: "Reconoce su nombre escrito." },
+        "Expresión corporal": { term: "Trimestre 1", grades: ["Básico", "Básico", "Bajo", "Básico"], final: "Básico", competency: "Muestra dificultad para atarse los cordones." }
     },
     "S003": {
-        "Dimensión Comunicativa": { term: "Trimestre 1", grades: ["Superior", "Superior", "Superior", "Alto"], final: "Superior", competency: "Escribe su nombre sin ayuda." },
-        "Dimensión Cognitiva": { term: "Trimestre 1", grades: ["Superior", "Alto", "Superior", "Superior"], final: "Superior", competency: "Clasifica objetos por color y forma." }
+        "Lecto escritura": { term: "Trimestre 1", grades: ["Superior", "Superior", "Superior", "Alto"], final: "Superior", competency: "Escribe su nombre sin ayuda." },
+        "Pre matemáticas": { term: "Trimestre 1", grades: ["Superior", "Alto", "Superior", "Superior"], final: "Superior", competency: "Clasifica objetos por color y forma." }
     },
     "S007": {
         "Matemáticas 1": { term: "Trimestre 1", grades: [4.5, 4.2, 5.0, 4.8], final: 4.6, competency: "Resuelve sumas simples." },
@@ -57,9 +57,9 @@ const gradesData: Record<string, Record<string, { term: string; grades: (string 
 
 
 const subjectsByGrade: Record<string, string[]> = {
-    'Pre-jardín': ['Dimensión Comunicativa', 'Dimensión Cognitiva', 'Dimensión Corporal', 'Dimensión Socio-Afectiva', 'Inglés'],
-    'Jardín': ['Dimensión Comunicativa', 'Dimensión Cognitiva', 'Dimensión Corporal', 'Dimensión Estética', 'Inglés'],
-    'Transición': ['Dimensión Comunicativa', 'Dimensión Cognitiva', 'Dimensión Corporal', 'Inglés'],
+    'Pre-jardín': ['Pre matemáticas', 'Lecto escritura', 'Ciencias integradas', 'Ingles', 'Ética y valores', 'Religión', 'Expresión corporal'],
+    'Jardín': ['Pre matemáticas', 'Lecto escritura', 'Ciencias integradas', 'Ingles', 'Ética y valores', 'Religión', 'Expresión corporal'],
+    'Transición': ['Pre matemáticas', 'Lecto escritura', 'Ciencias integradas', 'Ingles', 'Ética y valores', 'Religión', 'Expresión corporal'],
     'Primero': ['Matemáticas 1', 'Geometria', 'Lenguaje 1', 'Ciencias Naturales 1', 'Ciencias Sociales 1', 'Inglés', 'Tecnología', 'Etica y valores', 'Educacion fisica', 'Artistica'],
     'Segundo': ['Matemáticas 2', 'Geometria', 'Lenguaje 2', 'Ciencias Naturales 2', 'Ciencias Sociales 2', 'Inglés', 'Tecnología', 'Etica y valores', 'Educacion fisica', 'Artistica'],
     'Tercero': ['Matemáticas 3', 'Geometria', 'Lenguaje 3', 'Ciencias Naturales 3', 'Ciencias Sociales 3', 'Inglés', 'Tecnología', 'Etica y valores', 'Educacion fisica', 'Artistica'],

@@ -50,12 +50,14 @@ interface CreateCourseDialogProps {
 }
 
 const preschoolGrades = ['Pre-jardín', 'Jardín', 'Transición'];
-const preschoolDimensions = [
-    'Dimensión Corporal',
-    'Dimensión Cognitiva',
-    'Dimensión Comunicativa',
-    'Dimensión Estética',
-    'Dimensión Socio-Afectiva',
+const preschoolSubjects = [
+    'Pre matemáticas',
+    'Lecto escritura',
+    'Ciencias integradas',
+    'Ingles',
+    'Ética y valores',
+    'Religión',
+    'Expresión corporal'
 ];
 
 export function CreateCourseDialog({
@@ -123,7 +125,7 @@ export function CreateCourseDialog({
         <DialogHeader>
           <DialogTitle>Crear Nuevo Curso</DialogTitle>
           <DialogDescription>
-            Complete el formulario para registrar un nuevo curso o dimensión.
+            Complete el formulario para registrar un nuevo curso o materia.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -164,16 +166,16 @@ export function CreateCourseDialog({
                     name="name"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Dimensión Curricular</FormLabel>
+                            <FormLabel>Materia</FormLabel>
                              <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Seleccione una dimensión" />
+                                        <SelectValue placeholder="Seleccione una materia" />
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    {preschoolDimensions.map(dim => (
-                                        <SelectItem key={dim} value={dim}>{dim}</SelectItem>
+                                    {preschoolSubjects.map(subject => (
+                                        <SelectItem key={subject} value={subject}>{subject}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
