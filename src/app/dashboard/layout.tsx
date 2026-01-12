@@ -122,13 +122,13 @@ function LoginView({ schoolSettings }: { schoolSettings: SchoolSettings | null }
     
     return (
         <div className="flex min-h-screen w-full bg-background">
-             <div
+             <div 
                 className="hidden lg:flex lg:w-1/2 relative bg-cover bg-center"
-                style={{ backgroundImage: "url('https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')" }}
+                style={{ backgroundImage: "url('https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?q=80&w=2532&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')" }}
             >
                 <div className="relative z-10 flex flex-col justify-end p-16 text-white bg-gradient-to-t from-primary/80 to-transparent w-full h-full">
-                    <h1 className="text-5xl font-bold mb-4">Cuidando su futuro con amor.</h1>
-                    <p className="text-xl opacity-90 font-medium">Una plataforma diseñada para el crecimiento y bienestar de los más pequeños.</p>
+                    <h1 className="text-5xl font-bold mb-4">Crecimiento Académico</h1>
+                    <p className="text-xl opacity-90 font-medium">Una plataforma para la gestión educativa del mañana.</p>
                 </div>
             </div>
             <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 md:p-16">

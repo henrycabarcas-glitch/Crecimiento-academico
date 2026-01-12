@@ -1,4 +1,5 @@
 
+
 export interface Student {
     id: string;
     firstName: string;
@@ -29,6 +30,11 @@ export interface Student {
     healthCenter?: string;
     bloodType?: string;
     disability?: string;
+}
+
+export interface WithId<T> {
+  id: string;
+  [key: string]: any;
 }
   
 export interface Parent {

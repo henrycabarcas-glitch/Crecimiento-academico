@@ -11,27 +11,64 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Loader2, PlusCircle } from "lucide-react";
+import { MoreHorizontal, Loader2, PlusCircle, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from '@/components/ui/badge';
 import { CreateCourseDialog } from '@/components/dashboard/create-course-dialog';
 import { Course } from '@/lib/types';
 import { useCourses } from '@/hooks/use-courses';
+import { WithId, useFirestore } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
+import { deleteDoc, doc } from 'firebase/firestore';
+import { DeleteConfirmationDialog } from '@/components/dashboard/delete-confirmation-dialog';
 
 
 export default function CurriculumPage() {
   const [isCreateCourseDialogOpen, setCreateCourseDialogOpen] = useState(false);
   const { data: courses, isLoading } = useCourses();
+  const { toast } = useToast();
+  const firestore = useFirestore();
+
+  const [courseToAction, setCourseToAction] = useState<WithId<Course> | null>(null);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleteLoading, setIsDeleteLoading] = useState(false);
+
 
   const handleSetCreateCourseDialogOpen = useCallback((isOpen: boolean) => {
     setCreateCourseDialogOpen(isOpen);
   }, []);
+
+  const handleDeleteClick = (course: WithId<Course>) => {
+    setCourseToAction(course);
+    setIsDeleteOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!courseToAction) return;
+    setIsDeleteLoading(true);
+    try {
+        await deleteDoc(doc(firestore, 'courses', courseToAction.id));
+        toast({ title: "Curso Eliminado", description: `El curso "${courseToAction.name}" ha sido eliminado.` });
+        setIsDeleteOpen(false);
+        setCourseToAction(null);
+    } catch (error) {
+        console.error("Error deleting course: ", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se pudo eliminar el curso. Es posible que no tenga los permisos necesarios.",
+        });
+    } finally {
+        setIsDeleteLoading(false);
+    }
+  };
 
   return (
     <>
@@ -92,6 +129,11 @@ export default function CurriculumPage() {
                               <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                               <DropdownMenuItem>Editar Curso</DropdownMenuItem>
                               <DropdownMenuItem>Asignar Estudiantes</DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                               <DropdownMenuItem onSelect={() => handleDeleteClick(course)} className="text-destructive focus:text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4"/>
+                                Eliminar Curso
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -108,6 +150,16 @@ export default function CurriculumPage() {
         isOpen={isCreateCourseDialogOpen}
         onOpenChange={handleSetCreateCourseDialogOpen}
       />
+       {courseToAction && (
+        <DeleteConfirmationDialog
+          isOpen={isDeleteOpen}
+          onOpenChange={setIsDeleteOpen}
+          onConfirm={handleDeleteConfirm}
+          isLoading={isDeleteLoading}
+          title={`¿Eliminar el curso "${courseToAction.name}"?`}
+          description="Esta acción es irreversible y eliminará permanentemente el curso y sus datos asociados, como los logros."
+        />
+      )}
     </>
   );
 }

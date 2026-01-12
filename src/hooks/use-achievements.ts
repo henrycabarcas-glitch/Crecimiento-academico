@@ -12,13 +12,12 @@ export interface UseAchievementsResult {
 export function useAchievements(courseId?: string): UseAchievementsResult {
   const firestore = useFirestore();
   
-  const achievementsCollection = useMemoFirebase(() => {
-    if (!courseId) return null;
-    // This assumes achievements are a subcollection under a course
-    return collection(firestore, 'courses', courseId, 'achievements');
+  const achievementsQuery = useMemoFirebase(() => {
+    if (!firestore || !courseId) return null;
+    return query(collection(firestore, 'courses', courseId, 'achievements'));
   }, [firestore, courseId]);
 
-  const { data, isLoading, error } = useCollection<Achievement>(achievementsCollection);
+  const { data, isLoading, error } = useCollection<Achievement>(achievementsQuery);
 
   return { data, isLoading, error };
 }

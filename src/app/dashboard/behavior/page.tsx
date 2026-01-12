@@ -1,5 +1,5 @@
 'use client';
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import {
   Card,
@@ -19,13 +19,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PlusCircle, Loader2 } from "lucide-react";
-import { BehavioralObservation, Student } from "@/lib/types";
+import { PlusCircle, Loader2, MoreVertical, Trash2, Edit } from "lucide-react";
+import { BehavioralObservation, Student, WithId } from "@/lib/types";
 import { useStudents } from "@/hooks/use-students";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection, query, where, orderBy, addDoc } from "firebase/firestore";
+import { collection, query, where, orderBy, addDoc, doc, deleteDoc } from "firebase/firestore";
 import { useUser } from "@/firebase/provider";
 import { useToast } from "@/hooks/use-toast";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DeleteConfirmationDialog } from "@/components/dashboard/delete-confirmation-dialog";
+import { EditObservationDialog } from "@/components/dashboard/edit-observation-dialog";
 
 
 export default function BehaviorPage() {
@@ -39,10 +42,16 @@ export default function BehaviorPage() {
 
   const firestore = useFirestore();
 
+  const [observationToAction, setObservationToAction] = useState<WithId<BehavioralObservation> | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleteLoading, setIsDeleteLoading] = useState(false);
+
+
   const student = students?.find(s => s.id === selectedStudentId);
 
   const logsQuery = useMemoFirebase(() => {
-    if (!selectedStudentId) return null;
+    if (!firestore || !selectedStudentId) return null;
     return query(
         collection(firestore, 'students', selectedStudentId, 'behavioralObservations'), 
         orderBy('date', 'desc')
@@ -91,6 +100,33 @@ export default function BehaviorPage() {
     }
   }
 
+  const handleEditClick = (log: WithId<BehavioralObservation>) => {
+    setObservationToAction(log);
+    setIsEditOpen(true);
+  };
+  
+  const handleDeleteClick = (log: WithId<BehavioralObservation>) => {
+    setObservationToAction(log);
+    setIsDeleteOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!observationToAction || !selectedStudentId) return;
+    setIsDeleteLoading(true);
+    try {
+        const logRef = doc(firestore, 'students', selectedStudentId, 'behavioralObservations', observationToAction.id);
+        await deleteDoc(logRef);
+        toast({ title: "Observación Eliminada", description: "El registro ha sido eliminado."});
+        setIsDeleteOpen(false);
+        setObservationToAction(null);
+    } catch(e) {
+        toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar la observación."});
+    } finally {
+        setIsDeleteLoading(false);
+    }
+  };
+
+
   const getStudentAvatar = (studentId?: string) => {
     if (!studentId) return { imageUrl: '', imageHint: '' };
     return { imageUrl: student?.photoUrl || '', imageHint: 'student portrait' };
@@ -101,124 +137,163 @@ export default function BehaviorPage() {
 
 
   return (
-    <div className="flex flex-col h-full">
-      <PageHeader 
-        title="Registro de Comportamiento"
-        description="Anote y consulte el historial de observaciones de comportamiento de los estudiantes."
-      />
-      <main className="flex-1 space-y-6 p-4 md:p-6">
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle>Nueva Observación</CardTitle>
-                <CardDescription>
-                  Registre una nueva observación de comportamiento.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="student-select" className="text-sm font-medium">Estudiante</label>
-                  <Select onValueChange={setSelectedStudentId} value={selectedStudentId} disabled={isLoadingStudents}>
-                    <SelectTrigger id="student-select">
-                      <SelectValue placeholder={isLoadingStudents ? "Cargando..." : "Seleccione un estudiante"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {students?.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.firstName} {s.lastName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                    <label htmlFor="observation-type" className="text-sm font-medium">Tipo de Observación</label>
-                    <Select onValueChange={(v) => setObservationType(v as any)} value={observationType} disabled={isSubmitting}>
-                        <SelectTrigger id="observation-type">
-                            <SelectValue placeholder="Seleccione un tipo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="Positive">Positiva</SelectItem>
-                            <SelectItem value="Negative">Negativa</SelectItem>
-                            <SelectItem value="Needs Improvement">A mejorar</SelectItem>
-                        </SelectContent>
+    <>
+      <div className="flex flex-col h-full">
+        <PageHeader 
+          title="Registro de Comportamiento"
+          description="Anote y consulte el historial de observaciones de comportamiento de los estudiantes."
+        />
+        <main className="flex-1 space-y-6 p-4 md:p-6">
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-1">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Nueva Observación</CardTitle>
+                  <CardDescription>
+                    Registre una nueva observación de comportamiento.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <label htmlFor="student-select" className="text-sm font-medium">Estudiante</label>
+                    <Select onValueChange={setSelectedStudentId} value={selectedStudentId} disabled={isLoadingStudents}>
+                      <SelectTrigger id="student-select">
+                        <SelectValue placeholder={isLoadingStudents ? "Cargando..." : "Seleccione un estudiante"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {students?.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.firstName} {s.lastName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
                     </Select>
-                </div>
-                <div className="space-y-2">
-                    <label htmlFor="observation-text" className="text-sm font-medium">Observación</label>
-                    <Textarea 
-                        id="observation-text" 
-                        placeholder="Describa el comportamiento..."
-                        value={observationText}
-                        onChange={(e) => setObservationText(e.target.value)}
-                        disabled={isSubmitting}
-                    />
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button onClick={handleAddObservation} disabled={isSubmitting || !selectedStudentId}>
-                  {isSubmitting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                  )}
-                  Añadir Registro
-                </Button>
-              </CardFooter>
-            </Card>
-          </div>
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-4">
-                    {student && (
-                        <Avatar className="h-12 w-12">
-                            <AvatarImage src={imageUrl} alt={`${student.firstName} ${student.lastName}`} data-ai-hint={imageHint}/>
-                            <AvatarFallback>{student.firstName.charAt(0)}{student.lastName.charAt(0)}</AvatarFallback>
-                        </Avatar>
+                  </div>
+                  <div className="space-y-2">
+                      <label htmlFor="observation-type" className="text-sm font-medium">Tipo de Observación</label>
+                      <Select onValueChange={(v) => setObservationType(v as any)} value={observationType} disabled={isSubmitting}>
+                          <SelectTrigger id="observation-type">
+                              <SelectValue placeholder="Seleccione un tipo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="Positive">Positiva</SelectItem>
+                              <SelectItem value="Negative">Negativa</SelectItem>
+                              <SelectItem value="Needs Improvement">A mejorar</SelectItem>
+                          </SelectContent>
+                      </Select>
+                  </div>
+                  <div className="space-y-2">
+                      <label htmlFor="observation-text" className="text-sm font-medium">Observación</label>
+                      <Textarea 
+                          id="observation-text" 
+                          placeholder="Describa el comportamiento..."
+                          value={observationText}
+                          onChange={(e) => setObservationText(e.target.value)}
+                          disabled={isSubmitting}
+                      />
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button onClick={handleAddObservation} disabled={isSubmitting || !selectedStudentId}>
+                    {isSubmitting ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <PlusCircle className="mr-2 h-4 w-4" />
                     )}
-                    <div>
-                        <CardTitle>Historial de Observaciones de</CardTitle>
-                        <CardDescription className="text-lg font-semibold text-foreground">
-                            {student ? `${student.firstName} ${student.lastName}` : 'Seleccione un estudiante'}
-                        </CardDescription>
-                    </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {isLoading ? (
-                     <div className="text-center text-muted-foreground py-8">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto mb-2" />
-                        Cargando...
-                    </div>
-                  ) : logs && logs.length > 0 ? logs.map((log) => (
-                    <div key={log.id} className="flex gap-4">
-                      <div className="flex-shrink-0">
-                         <div className="w-12 h-12 rounded-full bg-secondary flex flex-col items-center justify-center">
-                            <span className="text-sm font-bold">{new Date(log.date).getDate()}</span>
-                            <span className="text-xs">{new Date(log.date).toLocaleString('es-ES', { month: 'short' })}</span>
+                    Añadir Registro
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
+            <div className="lg:col-span-2">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-4">
+                      {student && (
+                          <Avatar className="h-12 w-12">
+                              <AvatarImage src={imageUrl} alt={`${student.firstName} ${student.lastName}`} data-ai-hint={imageHint}/>
+                              <AvatarFallback>{student.firstName.charAt(0)}{student.lastName.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                      )}
+                      <div>
+                          <CardTitle>Historial de Observaciones de</CardTitle>
+                          <CardDescription className="text-lg font-semibold text-foreground">
+                              {student ? `${student.firstName} ${student.lastName}` : 'Seleccione un estudiante'}
+                          </CardDescription>
+                      </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {isLoading ? (
+                      <div className="text-center text-muted-foreground py-8">
+                          <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto mb-2" />
+                          Cargando...
+                      </div>
+                    ) : logs && logs.length > 0 ? logs.map((log) => (
+                      <div key={log.id} className="flex gap-4 group">
+                        <div className="flex-shrink-0">
+                          <div className="w-12 h-12 rounded-full bg-secondary flex flex-col items-center justify-center">
+                              <span className="text-sm font-bold">{new Date(log.date).getDate()}</span>
+                              <span className="text-xs">{new Date(log.date).toLocaleString('es-ES', { month: 'short' })}</span>
+                          </div>
+                        </div>
+                        <div className="flex-grow">
+                          <p className="font-medium text-foreground">{log.description}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Observado por: {log.teacherId} {/* Replace with teacher name later */}
+                          </p>
+                        </div>
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                        <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <DropdownMenuItem onSelect={() => handleEditClick(log)}>
+                                        <Edit className="mr-2 h-4 w-4"/>
+                                        Editar
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => handleDeleteClick(log)} className="text-destructive">
+                                        <Trash2 className="mr-2 h-4 w-4"/>
+                                        Eliminar
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-foreground">{log.description}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Observado por: {log.teacherId} {/* Replace with teacher name later */}
-                        </p>
+                    )) : (
+                      <div className="text-center text-muted-foreground py-8">
+                          {student ? 'No se encontraron observaciones para este estudiante.' : 'Seleccione un estudiante para ver su historial.'}
                       </div>
-                    </div>
-                  )) : (
-                    <div className="text-center text-muted-foreground py-8">
-                        {student ? 'No se encontraron observaciones para este estudiante.' : 'Seleccione un estudiante para ver su historial.'}
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
-        </div>
-      </main>
-    </div>
+        </main>
+      </div>
+      {observationToAction && student && (
+        <EditObservationDialog 
+            isOpen={isEditOpen} 
+            onOpenChange={setIsEditOpen} 
+            observation={observationToAction} 
+            student={student} 
+        />
+      )}
+      {observationToAction && (
+          <DeleteConfirmationDialog 
+            isOpen={isDeleteOpen}
+            onOpenChange={setIsDeleteOpen}
+            onConfirm={handleDeleteConfirm}
+            isLoading={isDeleteLoading}
+            title="¿Eliminar Observación?"
+            description="Esta acción es irreversible y eliminará permanentemente el registro de comportamiento."
+          />
+      )}
+    </>
   );
 }

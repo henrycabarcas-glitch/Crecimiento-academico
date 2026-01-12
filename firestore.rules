@@ -1,3 +1,4 @@
+
 /**
  * Core Philosophy: This ruleset enforces a relational access control model for a school management system.
  * Access is not granted by simple ownership but by the relationships defined in the data itself (e.g., a parent
@@ -97,6 +98,50 @@ service cloud.firestore {
       allow get: if isParentOfStudent(studentId) || hasManagementRole();
       allow list: if isSignedIn();
       allow create, update, delete: if hasManagementRole();
+
+        /**
+       * @description A student's behavioral observations. Writable by the observing teacher, readable by parents/managers.
+       * @path /students/{studentId}/behavioralObservations/{behavioralObservationId}
+       * @allow (get, list) A parent, the observing teacher, or a manager can read an observation.
+       * @allow (create) The creator must be the signed-in user or a manager.
+       * @allow (update, delete) Only the teacher who created the observation or a manager can modify/delete it.
+       * @principle Enforces creator ownership for modifications while allowing relevant guardians and managers read access.
+       */
+      match /behavioralObservations/{behavioralObservationId} {
+        allow get, list: if isParentOfStudent(studentId) || hasManagementRole() || isOwner(resource.data.teacherId);
+        allow create: if (isOwner(request.resource.data.teacherId) || hasManagementRole()) && request.resource.data.studentId == studentId;
+        allow update, delete: if resource != null && (isOwner(resource.data.teacherId) || hasManagementRole());
+      }
+
+      /**
+       * @description A student's payment records. Writable by managers, readable by parents/managers.
+       * @path /students/{studentId}/payments/{paymentId}
+       * @allow (get, list) A parent or manager can view payment records.
+       * @allow (write) Only managers can create new payment records.
+       * @principle Restricts financial record creation to authorized administrative staff.
+       */
+      match /payments/{paymentId} {
+        allow get, list: if isParentOfStudent(studentId) || hasManagementRole();
+        allow create, update, delete: if hasManagementRole();
+      }
+
+       /**
+       * @description A student's academic report cards. Writable by the course teacher, readable by parents/managers.
+       * @path /students/{studentId}/reportCards/{reportCardId}
+       * @allow (get) A parent, the relevant course teacher, or a manager can read a report card.
+       * @allow (list) A parent can list all report cards for their child. Managers can too.
+       * @allow (create, update, delete) Only the teacher of the course can manage the report card.
+       * @principle Validates relational integrity, ensuring only the correct teacher can create records for enrolled students.
+       */
+      match /reportCards/{reportCardId} {
+        allow get: if isParentOfStudent(studentId) || isTeacherOfCourse(resource.data.courseId) || hasManagementRole();
+        allow list: if isParentOfStudent(studentId) || hasManagementRole();
+        allow create: if isSignedIn()
+                      && request.resource.data.studentId == studentId
+                      && isTeacherOfCourse(request.resource.data.courseId)
+                      && studentId in get(/databases/$(database)/documents/courses/$(request.resource.data.courseId)).data.studentIds;
+        allow update, delete: if resource != null && (isTeacherOfCourse(resource.data.courseId) || hasManagementRole());
+      }
     }
 
     /**
@@ -123,8 +168,10 @@ service cloud.firestore {
        * @description Course information is primarily managed by the assigned teacher or managers.
        * @path /courses/{courseId}
        * @allow (get, list) Any signed-in user can read course details.
-       * @allow (create, update, delete) Only the assigned teacher or a manager can manage the course.
-       * @principle Secures course data by granting write access only to the assigned teacher or an admin.
+       * @allow (create) Only managers can create a course.
+       * @allow (update) Only the assigned teacher or a manager can update the course.
+       * @allow (delete) Only managers can delete the course.
+       * @principle Secures course data by granting write access only to authorized personnel.
        */
       allow get, list: if isSignedIn();
       allow create: if hasManagementRole();
@@ -174,56 +221,12 @@ service cloud.firestore {
         allow write: if hasManagementRole();
     }
 
-
-    /**
-     * @description Rules for student-specific subcollections. These rules apply to reportCards, behavioralObservations, and payments.
-     * @path /students/{studentId}/{subcollection}/{docId}
-     */
-    match /students/{studentId} {
-
-      /**
-       * @description A student's academic report cards. Writable by the course teacher, readable by parents/managers.
-       * @path /students/{studentId}/reportCards/{reportCardId}
-       * @allow (get) A parent, the relevant course teacher, or a manager can read a report card.
-       * @allow (list) A parent can list all report cards for their child. Managers can too.
-       * @allow (create, update, delete) Only the teacher of the course can manage the report card.
-       * @principle Validates relational integrity, ensuring only the correct teacher can create records for enrolled students.
-       */
-      match /reportCards/{reportCardId} {
-        allow get: if isParentOfStudent(studentId) || isTeacherOfCourse(resource.data.courseId) || hasManagementRole();
-        allow list: if isParentOfStudent(studentId) || hasManagementRole();
-        allow create: if isSignedIn()
-                      && request.resource.data.studentId == studentId
-                      && isTeacherOfCourse(request.resource.data.courseId)
-                      && studentId in get(/databases/$(database)/documents/courses/$(request.resource.data.courseId)).data.studentIds;
-        allow update, delete: if resource != null && (isTeacherOfCourse(resource.data.courseId) || hasManagementRole());
-      }
-
-      /**
-       * @description A student's behavioral observations. Writable by the observing teacher, readable by parents/managers.
-       * @path /students/{studentId}/behavioralObservations/{behavioralObservationId}
-       * @allow (get) A parent, the observing teacher, or a manager can read an observation.
-       * @allow (list) A parent or manager can list observations for the student.
-       * @allow (create, update, delete) Only the teacher who created the observation can manage it.
-       * @principle Enforces creator ownership for modifications while allowing relevant guardians and managers read access.
-       */
-      match /behavioralObservations/{behavioralObservationId} {
-        allow get, list: if isParentOfStudent(studentId) || hasManagementRole() || isOwner(resource.data.teacherId);
-        allow create: if (isOwner(request.resource.data.teacherId) || hasManagementRole()) && request.resource.data.studentId == studentId;
-        allow update, delete: if resource != null && (isOwner(resource.data.teacherId) || hasManagementRole());
-      }
-
-      /**
-       * @description A student's payment records. Writable by managers, readable by parents/managers.
-       * @path /students/{studentId}/payments/{paymentId}
-       * @allow (get, list) A parent or manager can view payment records.
-       * @allow (create) Only managers can create new payment records.
-       * @principle Restricts financial record creation to authorized administrative staff.
-       */
-      match /payments/{paymentId} {
-        allow get, list: if isParentOfStudent(studentId) || hasManagementRole();
-        allow create, update, delete: if hasManagementRole();
-      }
+    // observation collections.
+    match /students/{studentId}/behavioralObservations/{observationId} {
+      allow read, get: if isParentOfStudent(studentId) || isOwner(resource.data.teacherId) || hasManagementRole();
+      allow list: if isParentOfStudent(studentId) || hasManagementRole();
+      allow create: if isOwner(request.resource.data.teacherId) || hasManagementRole();
+      allow update, delete: if isOwner(resource.data.teacherId) || hasManagementRole();
     }
   }
 }
