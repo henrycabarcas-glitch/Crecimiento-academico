@@ -123,7 +123,7 @@ export default function StudentsPage() {
                 <TableRow>
                   <TableHead>Estudiante</TableHead>
                   <TableHead>Grado</TableHead>
-                  <TableHead>Acudiente</TableHead>
+                  <TableHead>Documento</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -139,8 +139,6 @@ export default function StudentsPage() {
                   </TableRow>
                 ) : students && students.length > 0 ? (
                   students.map((student) => {
-                    const parent = student.parents?.[0];
-
                     return (
                       <TableRow key={student.id} className="transition-colors hover:bg-muted/80">
                         <TableCell>
@@ -161,8 +159,8 @@ export default function StudentsPage() {
                           <Badge variant="secondary">{student.gradeLevel}</Badge>
                         </TableCell>
                         <TableCell>
-                          <div>{parent ? `${parent.firstName} ${parent.lastName}`: 'N/A'}</div>
-                          <div className="text-sm text-muted-foreground">{parent?.email || 'N/A'}</div>
+                          <div>{student.documentType}</div>
+                          <div className="text-sm text-muted-foreground">{student.documentNumber}</div>
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>

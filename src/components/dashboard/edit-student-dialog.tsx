@@ -1,9 +1,10 @@
+
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { doc, writeBatch } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import Image from 'next/image';
 import {
   Dialog,
@@ -37,13 +38,6 @@ import { Student } from '@/lib/types';
 import { ScrollArea } from '../ui/scroll-area';
 import { Separator } from '../ui/separator';
 
-const parentSchema = z.object({
-  id: z.string(), // Keep track of the original parent document ID
-  firstName: z.string().min(1, 'El nombre es requerido.'),
-  lastName: z.string().min(1, 'El apellido es requerido.'),
-  email: z.string().email('Email inválido.'),
-});
-
 const formSchema = z.object({
   firstName: z.string().min(1, 'El nombre es requerido.'),
   lastName: z.string().min(1, 'El apellido es requerido.'),
@@ -70,7 +64,6 @@ const formSchema = z.object({
   healthCenter: z.string().optional(),
   bloodType: z.string().optional(),
   disability: z.string().optional(),
-  parents: z.array(parentSchema).optional(),
 });
 
 type EditStudentFormValues = z.infer<typeof formSchema>;
@@ -93,11 +86,6 @@ export function EditStudentDialog({
 
   const form = useForm<EditStudentFormValues>({
     resolver: zodResolver(formSchema),
-  });
-  
-  const { fields } = useFieldArray({
-    control: form.control,
-    name: 'parents',
   });
 
   const photoUrl = form.watch("photoUrl");
@@ -130,12 +118,6 @@ export function EditStudentDialog({
         healthCenter: student.healthCenter || '',
         bloodType: student.bloodType || '',
         disability: student.disability || 'Ninguna',
-        parents: student.parents?.map(p => ({
-          id: p.id,
-          firstName: p.firstName,
-          lastName: p.lastName,
-          email: p.email,
-        })) || [],
       });
     }
   }, [student, form]);
@@ -156,24 +138,8 @@ export function EditStudentDialog({
     if (!student) return;
     setIsLoading(true);
     try {
-      const batch = writeBatch(firestore);
-
-      // Update student document
       const studentRef = doc(firestore, 'students', student.id);
-      const { parents, ...studentData } = values;
-      batch.update(studentRef, studentData as any);
-
-      // Update parent documents
-      if (values.parents) {
-        for (const parentData of values.parents) {
-          const parentRef = doc(firestore, 'parents', parentData.id);
-          // Don't update the ID field itself
-          const { id, ...parentUpdateData } = parentData;
-          batch.update(parentRef, parentUpdateData);
-        }
-      }
-
-      await batch.commit();
+      await updateDoc(studentRef, values as any);
 
       toast({
         title: '¡Estudiante Actualizado!',
@@ -416,63 +382,6 @@ export function EditStudentDialog({
                   <FormItem><FormLabel>Tipo de Sangre</FormLabel><FormControl><Input placeholder="Ej: O+" {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
               </div>
-
-              <Separator className="my-6" />
-              <h3 className="font-semibold text-lg">Información de Acudientes</h3>
-              <div className="space-y-4">
-                {fields.map((field, index) => (
-                  <div key={field.id} className="p-3 border rounded-lg space-y-3">
-                    <p className="text-sm font-medium text-muted-foreground">Acudiente {index + 1}</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name={`parents.${index}.firstName`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Nombres</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Ej: Carlos" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`parents.${index}.lastName`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Apellidos</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Ej: Rodríguez" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <FormField
-                      control={form.control}
-                      name={`parents.${index}.email`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="email"
-                              placeholder="Ej: c.rodriguez@example.com"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                ))}
-              </div>
-
-
             </div>
             </ScrollArea>
             <DialogFooter className="pt-4">

@@ -41,7 +41,7 @@ const formSchema = z.object({
   lastName: z.string().min(1, 'El apellido es requerido.'),
   email: z.string().email('Email inválido.'),
   photoUrl: z.string().optional(),
-  role: z.enum(['Profesor', 'Acudiente', 'Director', 'Directivo Docente', 'Administrador'], {
+  role: z.enum(['Profesor', 'Director', 'Directivo Docente', 'Administrador'], {
     required_error: 'El rol es requerido.',
   }),
 });
@@ -99,16 +99,13 @@ export function EditUserDialog({
     try {
       const userRef = doc(firestore, user.sourceCollection, user.id);
       
-      const dataToUpdate: any = {
+      const dataToUpdate = {
         firstName: values.firstName,
         lastName: values.lastName,
         email: values.email,
         photoUrl: values.photoUrl,
+        role: values.role,
       };
-
-      if (user.sourceCollection === 'teachers') {
-        dataToUpdate.role = values.role;
-      }
       
       await updateDoc(userRef, dataToUpdate);
       
@@ -137,8 +134,6 @@ export function EditUserDialog({
     onOpenChange(open);
   };
   
-  const isParent = user?.sourceCollection === 'parents';
-
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -240,7 +235,7 @@ export function EditUserDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Rol</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={isParent}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Seleccione un rol" />
@@ -248,7 +243,6 @@ export function EditUserDialog({
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="Profesor">Profesor</SelectItem>
-                      <SelectItem value="Acudiente" disabled>Acudiente</SelectItem>
                       <SelectItem value="Director">Director</SelectItem>
                       <SelectItem value="Directivo Docente">Directivo Docente</SelectItem>
                       <SelectItem value="Administrador">Administrador</SelectItem>

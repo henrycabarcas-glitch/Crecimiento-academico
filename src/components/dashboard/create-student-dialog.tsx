@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useRef, useCallback } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -32,15 +33,9 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
-import { Loader2, PlusCircle, Trash2, User as UserIcon } from 'lucide-react';
+import { Loader2, User as UserIcon } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { Separator } from '../ui/separator';
-
-const parentSchema = z.object({
-  firstName: z.string().min(1, 'El nombre es requerido.'),
-  lastName: z.string().min(1, 'El apellido es requerido.'),
-  email: z.string().email('Email inválido.'),
-});
 
 const formSchema = z.object({
   firstName: z.string().min(1, 'El nombre es requerido.'),
@@ -68,7 +63,6 @@ const formSchema = z.object({
   healthCenter: z.string().optional(),
   bloodType: z.string().optional(),
   disability: z.string().optional(),
-  parents: z.array(parentSchema).min(1, 'Se requiere al menos un acudiente.'),
 });
 
 type CreateStudentFormValues = z.infer<typeof formSchema>;
@@ -115,13 +109,7 @@ export function CreateStudentDialog({
       healthCenter: '',
       bloodType: '',
       disability: 'Ninguna',
-      parents: [{ firstName: '', lastName: '', email: '' }],
     },
-  });
-
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: 'parents',
   });
   
   const photoUrl = form.watch("photoUrl");
@@ -141,31 +129,13 @@ export function CreateStudentDialog({
   const onSubmit = async (values: CreateStudentFormValues) => {
     setIsLoading(true);
     try {
-      const batch = writeBatch(firestore);
-      const studentId = doc(collection(firestore, 'students')).id;
-
-      const parentIds: string[] = [];
-
-      for (const parentData of values.parents) {
-        const parentId = doc(collection(firestore, 'parents')).id;
-        const parentRef = doc(firestore, 'parents', parentId);
-        batch.set(parentRef, { 
-            ...parentData, 
-            id: parentId,
-            studentIds: [studentId] 
-        });
-        parentIds.push(parentId);
-      }
-
-      const studentRef = doc(firestore, 'students', studentId);
-      batch.set(studentRef, {
-        id: studentId,
+      const studentRef = doc(collection(firestore, 'students'));
+      
+      await setDoc(studentRef, {
+        id: studentRef.id,
         ...values,
-        parentIds: parentIds,
         enrollmentDate: new Date().toISOString().split('T')[0],
       });
-
-      await batch.commit();
       
       toast({
         title: '¡Estudiante Creado!',
@@ -407,34 +377,6 @@ export function CreateStudentDialog({
                 <FormField control={form.control} name="bloodType" render={({ field }) => (
                   <FormItem><FormLabel>Tipo de Sangre</FormLabel><FormControl><Input placeholder="Ej: O+" {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
-              </div>
-
-              <Separator className="my-6" />
-              <h3 className="font-semibold text-lg">Información de Acudientes</h3>
-              <div className="space-y-4">
-                  {fields.map((field, index) => (
-                      <div key={field.id} className="p-3 border rounded-lg space-y-3 relative">
-                           <div className="grid grid-cols-2 gap-4">
-                               <FormField control={form.control} name={`parents.${index}.firstName`} render={({ field }) => (
-                                <FormItem><FormLabel>Nombres del Acudiente</FormLabel><FormControl><Input placeholder="Ej: Carlos" {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                              <FormField control={form.control} name={`parents.${index}.lastName`} render={({ field }) => (
-                                <FormItem><FormLabel>Apellidos del Acudiente</FormLabel><FormControl><Input placeholder="Ej: Rodríguez" {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                           </div>
-                          <FormField control={form.control} name={`parents.${index}.email`} render={({ field }) => (
-                            <FormItem><FormLabel>Email del Acudiente</FormLabel><FormControl><Input type="email" placeholder="ej: c.rodriguez@example.com" {...field} /></FormControl><FormMessage /></FormItem>
-                          )}/>
-                          {fields.length > 1 && (
-                              <Button variant="destructive" size="sm" onClick={() => remove(index)} className="absolute top-2 right-2">
-                                  <Trash2 className="h-4 w-4" />
-                              </Button>
-                          )}
-                      </div>
-                  ))}
-                  <Button type="button" variant="outline" size="sm" onClick={() => append({ firstName: '', lastName: '', email: '' })}>
-                      <PlusCircle className="mr-2 h-4 w-4" /> Añadir otro Acudiente
-                  </Button>
               </div>
             </div>
             </ScrollArea>

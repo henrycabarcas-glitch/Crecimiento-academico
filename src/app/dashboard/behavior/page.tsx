@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useCallback } from "react";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -35,7 +36,7 @@ export default function BehaviorPage() {
   const { data: students, isLoading: isLoadingStudents } = useStudents();
   const [selectedStudentId, setSelectedStudentId] = useState<string | undefined>();
   const [observationText, setObservationText] = useState("");
-  const [observationType, setObservationType] = useState<'Positive' | 'Negative' | 'Needs Improvement' | undefined>();
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('Período 1');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useUser();
   const { toast } = useToast();
@@ -61,11 +62,11 @@ export default function BehaviorPage() {
   const { data: logs, isLoading: isLoadingLogs } = useCollection<BehavioralObservation>(logsQuery);
 
   const handleAddObservation = async () => {
-    if (!selectedStudentId || !observationText || !user || !observationType) {
+    if (!selectedStudentId || !observationText || !user || !selectedPeriod) {
         toast({
             variant: "destructive",
             title: "Campos Incompletos",
-            description: "Por favor, seleccione un estudiante, escriba una observación y elija un tipo.",
+            description: "Por favor, seleccione un estudiante, un período y escriba una observación.",
         });
         return;
     }
@@ -77,8 +78,8 @@ export default function BehaviorPage() {
             studentId: selectedStudentId,
             description: observationText,
             date: new Date().toISOString(),
-            teacherId: user.uid, // Assuming the logged-in user is the teacher making the observation
-            type: observationType,
+            teacherId: user.uid,
+            period: selectedPeriod,
         });
 
         toast({
@@ -87,7 +88,6 @@ export default function BehaviorPage() {
         });
 
         setObservationText("");
-        setObservationType(undefined);
     } catch (error) {
         console.error("Error adding observation: ", error);
         toast({
@@ -170,17 +170,18 @@ export default function BehaviorPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                      <label htmlFor="observation-type" className="text-sm font-medium">Tipo de Observación</label>
-                      <Select onValueChange={(v) => setObservationType(v as any)} value={observationType} disabled={isSubmitting}>
-                          <SelectTrigger id="observation-type">
-                              <SelectValue placeholder="Seleccione un tipo" />
-                          </SelectTrigger>
-                          <SelectContent>
-                              <SelectItem value="Positive">Positiva</SelectItem>
-                              <SelectItem value="Negative">Negativa</SelectItem>
-                              <SelectItem value="Needs Improvement">A mejorar</SelectItem>
-                          </SelectContent>
-                      </Select>
+                    <label htmlFor="period-select" className="text-sm font-medium">Período</label>
+                    <Select onValueChange={setSelectedPeriod} value={selectedPeriod}>
+                        <SelectTrigger id="period-select">
+                            <SelectValue placeholder="Seleccione un período" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Período 1">Período 1</SelectItem>
+                            <SelectItem value="Período 2">Período 2</SelectItem>
+                            <SelectItem value="Período 3">Período 3</SelectItem>
+                            <SelectItem value="Período 4">Período 4</SelectItem>
+                        </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                       <label htmlFor="observation-text" className="text-sm font-medium">Observación</label>
@@ -211,7 +212,7 @@ export default function BehaviorPage() {
                   <div className="flex items-center gap-4">
                       {student && (
                           <Avatar className="h-12 w-12">
-                              <AvatarImage src={imageUrl} alt={`${student.firstName} ${student.lastName}`} data-ai-hint={imageHint}/>
+                              <AvatarImage src={imageUrl || undefined} alt={`${student.firstName} ${student.lastName}`} data-ai-hint={imageHint}/>
                               <AvatarFallback>{student.firstName.charAt(0)}{student.lastName.charAt(0)}</AvatarFallback>
                           </Avatar>
                       )}
@@ -241,7 +242,7 @@ export default function BehaviorPage() {
                         <div className="flex-grow">
                           <p className="font-medium text-foreground">{log.description}</p>
                           <p className="text-sm text-muted-foreground">
-                            Observado por: {log.teacherId} {/* Replace with teacher name later */}
+                            {log.period} - Observado por: {log.teacherId} {/* Replace with teacher name later */}
                           </p>
                         </div>
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity">

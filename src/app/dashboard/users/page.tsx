@@ -1,3 +1,4 @@
+
 'use client';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -24,14 +25,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CreateUserDialog } from '@/components/dashboard/create-user-dialog';
 import { EditUserDialog } from '@/components/dashboard/edit-user-dialog';
-import { User, UserRole } from '@/lib/types';
+import { User, UserRole, Teacher } from '@/lib/types';
 import { DeleteConfirmationDialog } from '@/components/dashboard/delete-confirmation-dialog';
 import { doc, deleteDoc } from 'firebase/firestore';
-import { useFirestore, useUser } from '@/firebase';
+import { useFirestore, useUser, WithId } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { CreateUserForm } from '@/components/dashboard/create-user-form';
 import { hasManagementRole } from '@/lib/auth';
-import { useUsers } from '@/hooks/use-users';
+import { useTeachers } from '@/hooks/use-teachers';
 
 
 export default function UsersPage() {
@@ -97,8 +98,6 @@ export default function UsersPage() {
             return 'default';
         case 'Profesor':
             return 'secondary';
-        case 'Acudiente':
-            return 'outline';
         default:
             return 'secondary';
     }

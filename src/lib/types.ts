@@ -19,8 +19,6 @@ export interface Student {
     enrollmentDate: string;
     previousInstitution?: string;
     academicSituation?: string;
-    parentIds: string[];
-    parents?: Parent[];
     address?: string;
     residentialZone?: string;
     phoneNumber?: string;
@@ -37,16 +35,7 @@ export interface WithId<T> {
   [key: string]: any;
 }
   
-export interface Parent {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    photoUrl?: string;
-    studentIds?: string[];
-}
-
-export type UserRole = 'Profesor' | 'Acudiente' | 'Director' | 'Directivo Docente' | 'Administrador';
+export type UserRole = 'Profesor' | 'Director' | 'Directivo Docente' | 'Administrador';
 
 export interface Teacher {
     id: string;
@@ -54,17 +43,18 @@ export interface Teacher {
     lastName: string;
     email: string;
     photoUrl?: string;
-    role?: UserRole;
+    role: UserRole;
     courseIds?: string[];
 }
-export interface User extends Teacher, Partial<Parent> {
+
+export interface User extends Teacher {
     id: string;
     firstName: string;
     lastName: string;
     email: string;
     photoUrl?: string;
     role: UserRole;
-    sourceCollection: 'teachers' | 'parents';
+    sourceCollection: 'teachers';
 }
   
 export interface Course {
@@ -140,9 +130,9 @@ export interface BehavioralObservation {
     id: string;
     studentId: string;
     date: string;
+    period: string;
     description: string;
     teacherId: string;
-    type: 'Positive' | 'Negative' | 'Needs Improvement';
 }
 
 export interface Achievement {

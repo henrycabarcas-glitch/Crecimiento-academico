@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -35,8 +36,8 @@ import { Loader2 } from 'lucide-react';
 import { BehavioralObservation, Student } from '@/lib/types';
 
 const formSchema = z.object({
-  type: z.enum(['Positive', 'Negative', 'Needs Improvement'], { required_error: 'El tipo es requerido.'}),
   description: z.string().min(10, 'La descripción debe tener al menos 10 caracteres.'),
+  period: z.string().min(1, 'El período es requerido.'),
 });
 
 type EditObservationFormValues = z.infer<typeof formSchema>;
@@ -65,8 +66,8 @@ export function EditObservationDialog({
   useEffect(() => {
     if (observation) {
         form.reset({
-            type: observation.type,
             description: observation.description,
+            period: observation.period,
         });
     }
   }, [observation, form]);
@@ -77,8 +78,8 @@ export function EditObservationDialog({
       const observationRef = doc(firestore, 'students', student.id, 'behavioralObservations', observation.id);
       
       await updateDoc(observationRef, {
-        type: values.type,
         description: values.description,
+        period: values.period,
       });
 
       toast({
@@ -117,22 +118,23 @@ export function EditObservationDialog({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-             <FormField
+            <FormField
                 control={form.control}
-                name="type"
+                name="period"
                 render={({ field }) => (
                 <FormItem>
-                    <FormLabel>Tipo de Observación</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <FormLabel>Período</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                             <SelectTrigger>
-                                <SelectValue placeholder="Seleccione un tipo" />
+                                <SelectValue placeholder="Seleccione un período" />
                             </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            <SelectItem value="Positive">Positiva</SelectItem>
-                            <SelectItem value="Negative">Negativa</SelectItem>
-                            <SelectItem value="Needs Improvement">A mejorar</SelectItem>
+                            <SelectItem value="Período 1">Período 1</SelectItem>
+                            <SelectItem value="Período 2">Período 2</SelectItem>
+                            <SelectItem value="Período 3">Período 3</SelectItem>
+                            <SelectItem value="Período 4">Período 4</SelectItem>
                         </SelectContent>
                     </Select>
                     <FormMessage />

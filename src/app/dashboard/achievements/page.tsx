@@ -28,7 +28,7 @@ import { useAchievements } from '@/hooks/use-achievements';
 export default function AchievementsPage() {
     const { data: courses, isLoading: isLoadingCourses } = useCourses();
     const [selectedCourseId, setSelectedCourseId] = useState<string | undefined>();
-    const [selectedPeriod, setSelectedPeriod] = useState<string>('Trimestre 1');
+    const [selectedPeriod, setSelectedPeriod] = useState<string>('Período 1');
     const [isCreateAchievementDialogOpen, setCreateAchievementDialogOpen] = useState(false);
 
     const { data: achievements, isLoading: isLoadingAchievements } = useAchievements(selectedCourseId);
@@ -118,9 +118,10 @@ export default function AchievementsPage() {
                                         <SelectValue placeholder="Seleccione un período" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="Trimestre 1">Trimestre 1</SelectItem>
-                                        <SelectItem value="Trimestre 2">Trimestre 2</SelectItem>
-                                        <SelectItem value="Trimestre 3">Trimestre 3</SelectItem>
+                                        <SelectItem value="Período 1">Período 1</SelectItem>
+                                        <SelectItem value="Período 2">Período 2</SelectItem>
+                                        <SelectItem value="Período 3">Período 3</SelectItem>
+                                        <SelectItem value="Período 4">Período 4</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useRef, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
@@ -34,7 +35,7 @@ const formSchema = z.object({
   lastName: z.string().min(1, 'El apellido es requerido.'),
   email: z.string().email('Email inválido.'),
   photoUrl: z.string().optional(),
-  role: z.enum(['Profesor', 'Acudiente', 'Director', 'Directivo Docente', 'Administrador'], {
+  role: z.enum(['Profesor', 'Director', 'Directivo Docente', 'Administrador'], {
     required_error: 'El rol es requerido.',
   }),
 });
@@ -85,24 +86,17 @@ export function CreateUserForm({ onUserCreated, isInitialAdmin = false, isSubmit
             const userCredential = await createUserWithEmailAndPassword(auth, values.email, tempPassword);
             const { uid } = userCredential.user;
 
-            const isTeacher = ['Profesor', 'Director', 'Directivo Docente', 'Administrador'].includes(values.role);
-            const collectionName = isTeacher ? 'teachers' : 'parents';
-            
+            const collectionName = 'teachers';
             const newDocRef = doc(firestore, collectionName, uid);
             
-            const userData: any = {
+            const userData = {
                 id: newDocRef.id,
                 firstName: values.firstName,
                 lastName: values.lastName,
                 email: values.email,
                 photoUrl: values.photoUrl || '',
+                role: values.role as UserRole,
             };
-
-            if (isTeacher) {
-                userData.role = values.role as UserRole;
-            } else {
-                userData.studentIds = [];
-            }
             
             await setDoc(newDocRef, userData);
 
@@ -229,7 +223,6 @@ export function CreateUserForm({ onUserCreated, isInitialAdmin = false, isSubmit
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="Profesor">Profesor</SelectItem>
-                    <SelectItem value="Acudiente">Acudiente</SelectItem>
                     <SelectItem value="Director">Director</SelectItem>
                     <SelectItem value="Directivo Docente">Directivo Docente</SelectItem>
                     <SelectItem value="Administrador">Administrador</SelectItem>

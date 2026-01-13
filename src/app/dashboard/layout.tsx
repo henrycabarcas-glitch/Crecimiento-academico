@@ -8,7 +8,7 @@ import {
   SidebarInset,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { GraduationCap, Loader2, Mail, Lock } from "lucide-react";
+import { GraduationCap, Loader2, Mail, Lock, ShieldAlert } from "lucide-react";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import Link from "next/link";
 import { useUser, useAuth } from "@/firebase/provider";
@@ -189,11 +189,12 @@ function LoginView({ schoolSettings }: { schoolSettings: SchoolSettings | null }
 }
 
 function LayoutRenderer({ children, user }: { children: React.ReactNode, user: User | null }) {
-    const router = useRouter();
     const { data: schoolSettings, isLoading: isSettingsLoading } = useSchoolSettings();
+    const [isAuthorized, setIsAuthorized] = useState(false);
     const [isCheckingRole, setIsCheckingRole] = useState(true);
     const firestore = useFirestore();
-
+    const auth = useAuth();
+    
     useEffect(() => {
         const checkUserRole = async (user: User) => {
             if (!firestore) return;
@@ -201,12 +202,18 @@ function LayoutRenderer({ children, user }: { children: React.ReactNode, user: U
             const teacherRef = doc(firestore, "teachers", user.uid);
             try {
                 const docSnap = await getDoc(teacherRef);
-                if (!docSnap.exists()) {
-                    // This is likely a parent
-                    router.replace('/parent-dashboard');
+                if (docSnap.exists()) {
+                    // User is in the teachers collection, they are authorized.
+                    setIsAuthorized(true);
+                } else {
+                    // User is not a teacher/staff, deny access and sign out.
+                    setIsAuthorized(false);
+                    await auth.signOut();
                 }
             } catch (error) {
                 console.error("Error checking user role:", error);
+                setIsAuthorized(false);
+                 await auth.signOut();
             } finally {
                 setIsCheckingRole(false);
             }
@@ -215,9 +222,11 @@ function LayoutRenderer({ children, user }: { children: React.ReactNode, user: U
         if (user && !user.isAnonymous) {
             checkUserRole(user);
         } else {
+            // No user or anonymous user, not authorized for dashboard
+            setIsAuthorized(false);
             setIsCheckingRole(false);
         }
-    }, [user, firestore, router]);
+    }, [user, firestore, auth]);
 
     const isLoading = isSettingsLoading || (user && !user.isAnonymous && isCheckingRole);
 
@@ -229,17 +238,8 @@ function LayoutRenderer({ children, user }: { children: React.ReactNode, user: U
         );
     }
 
-    if (!user) {
+    if (!user || !isAuthorized) {
         return <LoginView schoolSettings={schoolSettings} />;
-    }
-    
-    // Don't render children until the role check is complete for non-anonymous users
-    if (!user.isAnonymous && isCheckingRole) {
-        return (
-            <div className="flex h-screen items-center justify-center bg-background">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </div>
-        );
     }
 
     return <DashboardView schoolSettings={schoolSettings}>{children}</DashboardView>;

@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Student": {
@@ -81,13 +82,6 @@
             "type": "string",
             "description": "Academic situation from the previous year (e.g., 'Aprobado', 'Reprobado')."
         },
-        "parentIds": {
-          "type": "array",
-          "description": "References to Parents. (Relationship: Student 1:N Parent)",
-          "items": {
-            "type": "string"
-          }
-        },
         "address": {
           "type": "string",
           "description": "Student's residence address."
@@ -141,11 +135,11 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Teacher",
       "type": "object",
-      "description": "Represents a teacher in the school.",
+      "description": "Represents a teacher or staff member in the school.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Teacher entity."
+          "description": "Unique identifier for the Teacher entity, matches Firebase Auth UID."
         },
         "firstName": {
           "type": "string",
@@ -160,9 +154,10 @@
           "description": "Teacher's email address.",
           "format": "email"
         },
-        "phoneNumber": {
+        "role": {
           "type": "string",
-          "description": "Teacher's phone number."
+          "description": "The user's role in the system.",
+          "enum": ["Profesor", "Director", "Directivo Docente", "Administrador"]
         },
         "courseIds": {
           "type": "array",
@@ -176,7 +171,8 @@
         "id",
         "firstName",
         "lastName",
-        "email"
+        "email",
+        "role"
       ]
     },
     "Course": {
@@ -220,48 +216,6 @@
         "gradeLevel"
       ]
     },
-    "Parent": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Parent",
-      "type": "object",
-      "description": "Represents a parent or guardian of a student.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Parent entity."
-        },
-        "firstName": {
-          "type": "string",
-          "description": "Parent's first name."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "Parent's last name."
-        },
-        "email": {
-          "type": "string",
-          "description": "Parent's email address.",
-          "format": "email"
-        },
-        "phoneNumber": {
-          "type": "string",
-          "description": "Parent's phone number."
-        },
-        "studentIds": {
-          "type": "array",
-          "description": "References to Students. (Relationship: Student 1:N Parent)",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "required": [
-        "id",
-        "firstName",
-        "lastName",
-        "email"
-      ]
-    },
     "Achievement": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Achievement",
@@ -278,7 +232,7 @@
         },
         "period": {
           "type": "string",
-          "description": "The academic period this achievement is for (e.g., 'Trimestre 1')."
+          "description": "The academic period this achievement is for (e.g., 'Período 1')."
         },
         "description": {
           "type": "string",
@@ -317,7 +271,7 @@
         },
         "period": {
           "type": "string",
-          "description": "The academic period the report card is for (e.g., 'First Semester', 'Second Quarter')."
+          "description": "The academic period the report card is for (e.g., 'Período 1', 'Período 2')."
         },
         "grade": {
           "type": "number",
@@ -360,13 +314,13 @@
           "description": "Date of the observation.",
           "format": "date"
         },
+        "period": {
+          "type": "string",
+          "description": "The academic period this observation is for (e.g., 'Período 1')."
+        },
         "description": {
           "type": "string",
           "description": "Description of the behavior observed."
-        },
-        "type": {
-          "type": "string",
-          "description": "Type of behavior (e.g., 'Positive', 'Negative', 'Needs Improvement')."
         },
         "teacherId": {
           "type": "string",
@@ -377,15 +331,16 @@
         "id",
         "studentId",
         "date",
+        "period",
         "description",
-        "type"
+        "teacherId"
       ]
     },
     "Payment": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Payment",
       "type": "object",
-      "description": "Represents a payment made by a parent.",
+      "description": "Represents a payment made for a student.",
       "properties": {
         "id": {
           "type": "string",
@@ -473,8 +428,7 @@
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "password"
     ]
   },
   "firestore": {
@@ -486,7 +440,7 @@
           "schema": {
             "$ref": "#/backend/entities/Student"
           },
-          "description": "Stores student data. Includes studentId as a parameter for document access. The parentIds array provides the necessary data to secure reads, writes, and updates, enforcing that only associated parents or authorized personnel can access student records.",
+          "description": "Stores student data. Includes studentId as a parameter for document access. Access is restricted to authorized school personnel.",
           "params": [
             {
               "name": "studentId",
@@ -502,11 +456,11 @@
           "schema": {
             "$ref": "#/backend/entities/Teacher"
           },
-          "description": "Stores teacher data.  Includes teacherId as a parameter for document access. The courseIds array provides the necessary data to secure reads, writes, and updates, enforcing that only assigned courses or authorized personnel can access teacher records.",
+          "description": "Stores teacher and staff data. Includes teacherId as a parameter for document access. This collection is central for role-based access control.",
           "params": [
             {
               "name": "teacherId",
-              "description": "The unique identifier for the teacher."
+              "description": "The unique identifier for the teacher or staff member."
             }
           ]
         }
@@ -543,22 +497,6 @@
             {
               "name": "achievementId",
               "description": "The unique identifier for the achievement."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/parents/{parentId}",
-        "definition": {
-          "entityName": "Parent",
-          "schema": {
-            "$ref": "#/backend/entities/Parent"
-          },
-          "description": "Stores parent data. Includes parentId as a parameter for document access. The studentIds array provides the necessary data to secure reads, writes, and updates, enforcing that only associated students or authorized personnel can access parent records.",
-          "params": [
-            {
-              "name": "parentId",
-              "description": "The unique identifier for the parent."
             }
           ]
         }
@@ -643,5 +581,3 @@
     "reasoning": "This Firestore structure is designed to support Scholarly Growth, a comprehensive educational management system for a Colombian school, focusing on compliance with the Ministry of Education's standards and Law 1581. The structure prioritizes security, scalability, and ease of use for administrators, teachers, and parents.\n\n**Authorization Independence:** Authorization independence is achieved through path-based ownership (e.g., `/users/{userId}/drafts`) for private data and the membership map model for collaborative data. Denormalization is used where needed to avoid `get()` calls in security rules, allowing atomic operations. For instance, if access to `ReportCards` depends on the student's grade level or course membership, this data is denormalized into the `ReportCard` document.\n\n**Structural Segregation:** The design enforces a homogeneous security posture by ensuring each collection contains documents with similar access requirements. Private user data resides under `/users/{userId}`, and collaborative data uses membership maps for access control.\n\n**Access Modeling:**\n*   **Path-Based Ownership:** User-specific data (e.g., a parent's profile or a teacher's courses) is stored under `/users/{userId}` to simplify ownership-based security rules.\n*   **Membership Maps:**  For collaborative entities, such as Courses where multiple students and teachers are involved, a `members` map (or similar) is used to define roles and permissions within the document.  Consider storing course-specific members within the course document or a subcollection, depending on frequency of access.\n*   **Global Roles (DBAC):**  Admin roles are managed using existence checks in dedicated collections like `/roles_admin/{uid}`, avoiding custom claims and improving security rule simplicity.\n\n**QAPs (Rules Are Not Filters):** The structure supports secure list operations. Path-based ownership and membership maps enable rules to efficiently determine if a user has access to a document without needing to filter based on document content.\n\n**Specific Collection Strategies:**\n\n*   **Students:** Stored in a flat `/students` collection. Parent relationships are managed through the `parentIds` array within each student document. Authorization is handled by checking if the accessing user's ID exists within the student's `parentIds` array.\n*   **Teachers:** Stored in a flat `/teachers` collection. Course assignments are managed via the `courseIds` array. Access is controlled by verifying the user's ID against the `teacherId` field in the course or related documents.\n*   **Courses:**  Stored in a flat `/courses` collection, with `teacherId` indicating the course's teacher. Student enrollment is tracked with `studentIds`. Security rules should ensure only the teacher, enrolled students, or admins can access course details.\n*   **Parents:** Stored in a flat `/parents` collection, with `studentIds` indicating associated students. Security is based on matching the user's ID against the `studentIds` of the requested student.\n*   **ReportCards, BehavioralObservations, and Payments:** These are stored as subcollections under the respective student document (`/students/{studentId}/reportCards`, etc.) to establish clear ownership and simplify security rules. This approach also supports easier data retrieval for a specific student.\n* **Achievements**: Stored as a subcollection under `/courses/{courseId}/achievements` to link them directly to a course. This simplifies authorization, as access can be derived from course ownership (teacherId).\n\n**School Settings**: A top-level `/settings` collection will hold a single document for global school settings. This allows administrators to manage school-wide information easily.\n\nThe structure ensures data clarity and predictability through explicit state modeling (using a `status` field where applicable), predictable schema with static keys, and standardized naming conventions. This design facilitates robust, secure, and easily maintainable Firestore rules that directly reflect the application's authorization logic."
   }
 }
-
-    

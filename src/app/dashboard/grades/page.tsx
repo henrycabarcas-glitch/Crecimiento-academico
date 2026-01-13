@@ -34,24 +34,24 @@ import { Checkbox } from '@/components/ui/checkbox';
 // Mock data structure representing student grades with performance levels and associated achievements.
 const gradesData: Record<string, Record<string, { term: string; grades: (string | number)[]; final: string | number; competency: string }>> = {
     "S001": {
-        "Lecto escritura": { term: "Trimestre 1", grades: ["Superior", "Alto", "Superior", "Alto"], final: "Superior", competency: "Identifica las vocales y su sonido." },
-        "Pre matemáticas": { term: "Trimestre 1", grades: ["Alto", "Alto", "Básico", "Superior"], final: "Alto", competency: "Cuenta objetos hasta el número 20." }
+        "Lecto escritura": { term: "Trimestre 1", grades: ["Superior", "Alto"], final: "Superior", competency: "Identifica las vocales y su sonido." },
+        "Pre matemáticas": { term: "Trimestre 1", grades: ["Alto", "Básico"], final: "Alto", competency: "Cuenta objetos hasta el número 20." }
     },
     "S002": {
-        "Lecto escritura": { term: "Trimestre 1", grades: ["Alto", "Básico", "Básico", "Alto"], final: "Alto", competency: "Reconoce su nombre escrito." },
-        "Expresión corporal": { term: "Trimestre 1", grades: ["Básico", "Básico", "Bajo", "Básico"], final: "Básico", competency: "Muestra dificultad para atarse los cordones." }
+        "Lecto escritura": { term: "Trimestre 1", grades: ["Alto", "Básico"], final: "Alto", competency: "Reconoce su nombre escrito." },
+        "Expresión corporal": { term: "Trimestre 1", grades: ["Básico", "Bajo"], final: "Básico", competency: "Muestra dificultad para atarse los cordones." }
     },
     "S003": {
-        "Lecto escritura": { term: "Trimestre 1", grades: ["Superior", "Superior", "Superior", "Alto"], final: "Superior", competency: "Escribe su nombre sin ayuda." },
-        "Pre matemáticas": { term: "Trimestre 1", grades: ["Superior", "Alto", "Superior", "Superior"], final: "Superior", competency: "Clasifica objetos por color y forma." }
+        "Lecto escritura": { term: "Trimestre 1", grades: ["Superior", "Alto"], final: "Superior", competency: "Escribe su nombre sin ayuda." },
+        "Pre matemáticas": { term: "Trimestre 1", grades: ["Superior", "Superior"], final: "Superior", competency: "Clasifica objetos por color y forma." }
     },
     "S007": {
-        "Matemáticas 1": { term: "Trimestre 1", grades: [4.5, 4.2, 5.0, 4.8], final: 4.6, competency: "Resuelve sumas simples." },
-        "Lenguaje 1": { term: "Trimestre 1", grades: [5.0, 4.8, 5.0, 5.0], final: 5.0, competency: "Lee frases cortas con fluidez." }
+        "Matemáticas 1": { term: "Trimestre 1", grades: [4.5, 4.2], final: 4.4, competency: "Resuelve sumas simples." },
+        "Lenguaje 1": { term: "Trimestre 1", grades: [5.0, 4.8], final: 4.9, competency: "Lee frases cortas con fluidez." }
     },
     "S008": {
-        "Matemáticas 1": { term: "Trimestre 1", grades: [3.2, 3.0, 2.8, 3.5], final: 3.1, competency: "Requiere apoyo en la resolución de restas." },
-        "Lenguaje 1": { term: "Trimestre 1", grades: [3.8, 4.0, 3.5, 4.1], final: 3.9, competency: "Identifica personajes principales en un cuento." }
+        "Matemáticas 1": { term: "Trimestre 1", grades: [3.2, 3.0], final: 3.1, competency: "Requiere apoyo en la resolución de restas." },
+        "Lenguaje 1": { term: "Trimestre 1", grades: [3.8, 4.0], final: 3.9, competency: "Identifica personajes principales en un cuento." }
     },
 };
 
@@ -163,7 +163,7 @@ export default function GradesPage() {
   const handleGradeChange = (studentId: string, subject: string, gradeIndex: number, newGrade: string | number) => {
     setLocalGrades(prevGrades => {
         const studentGrades = prevGrades[studentId] || {};
-        const subjectGrades = studentGrades[subject]?.grades || Array(4).fill('');
+        const subjectGrades = studentGrades[subject]?.grades || Array(2).fill('');
         const newSubjectGrades = [...subjectGrades];
         newSubjectGrades[gradeIndex] = newGrade;
         
@@ -301,6 +301,7 @@ export default function GradesPage() {
                 <TabsTrigger value="periodo-1">1° Periodo</TabsTrigger>
                 <TabsTrigger value="periodo-2">2° Periodo</TabsTrigger>
                 <TabsTrigger value="periodo-3">3° Periodo</TabsTrigger>
+                <TabsTrigger value="periodo-4">4° Periodo</TabsTrigger>
                 <TabsTrigger value="informe-final">
                     <FileText className="mr-2 h-4 w-4" />
                     Informe Final
@@ -316,8 +317,6 @@ export default function GradesPage() {
                                         <TableHead className="w-[300px] sticky left-0 bg-card z-10">Estudiante</TableHead>
                                         <TableHead className="text-center">Nota 1</TableHead>
                                         <TableHead className="text-center">Nota 2</TableHead>
-                                        <TableHead className="text-center">Nota 3</TableHead>
-                                        <TableHead className="text-center">Nota 4</TableHead>
                                         <TableHead className="text-center text-accent-foreground bg-accent/50 font-semibold">Promedio</TableHead>
                                         <TableHead className="text-center text-success bg-success/20 font-semibold">Desempeño</TableHead>
                                     </TableRow>
@@ -325,19 +324,19 @@ export default function GradesPage() {
                                 <TableBody>
                                     {isLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={7} className="text-center h-48">
+                                        <TableCell colSpan={5} className="text-center h-48">
                                             <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
                                         </TableCell>
                                     </TableRow>
                                     ) : !selectedGrade || !selectedSubject ? (
                                         <TableRow>
-                                            <TableCell colSpan={7} className="text-center h-48 text-muted-foreground">
+                                            <TableCell colSpan={5} className="text-center h-48 text-muted-foreground">
                                                 Por favor, seleccione un grado y una materia para ver la planilla.
                                             </TableCell>
                                         </TableRow>
                                     ) : students.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={7} className="text-center h-48 text-muted-foreground">
+                                            <TableCell colSpan={5} className="text-center h-48 text-muted-foreground">
                                                 No hay estudiantes en el grado seleccionado.
                                             </TableCell>
                                         </TableRow>
@@ -357,7 +356,7 @@ export default function GradesPage() {
                                                         <div className="whitespace-nowrap">{student.firstName} {student.lastName}</div>
                                                     </div>
                                                 </TableCell>
-                                                {[0,1,2,3].map(i => (
+                                                {[0,1].map(i => (
                                                     <TableCell key={i} className="text-center p-2">
                                                         {renderGradeInput(student, selectedSubject, i)}
                                                     </TableCell>
@@ -387,3 +386,5 @@ export default function GradesPage() {
     </TooltipProvider>
   );
 }
+
+    
