@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { MoreHorizontal, Loader2, PlusCircle, Trash2, User as UserIcon } from "lucide-react";
+import { MoreHorizontal, Loader2, PlusCircle, Trash2, User as UserIcon, ShieldAlert } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,7 +27,7 @@ import { EditUserDialog } from '@/components/dashboard/edit-user-dialog';
 import { User, UserRole } from '@/lib/types';
 import { DeleteConfirmationDialog } from '@/components/dashboard/delete-confirmation-dialog';
 import { doc, deleteDoc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { CreateUserForm } from '@/components/dashboard/create-user-form';
 import { hasManagementRole } from '@/lib/auth';
@@ -37,6 +37,7 @@ import { useUsers } from '@/hooks/use-users';
 export default function UsersPage() {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user: authUser, isUserLoading: isAuthUserLoading } = useUser();
   const { data: users, isLoading: isLoadingUsers, teachers } = useUsers();
   
   const [isCreateUserDialogOpen, setCreateUserDialogOpen] = useState(false);
@@ -45,6 +46,16 @@ export default function UsersPage() {
   const [userToAction, setUserToAction] = useState<User | null>(null);
   const [isDeleteLoading, setDeleteLoading] = useState(false);
   const [hasAdminUser, setHasAdminUser] = useState<boolean | null>(null);
+
+  const currentUser = useMemo(() => {
+    if (!authUser || !teachers) return null;
+    return teachers.find(t => t.id === authUser.uid);
+  }, [authUser, teachers]);
+
+  const canManageUsers = useMemo(() => {
+    if (!currentUser) return false;
+    return hasManagementRole(currentUser.role);
+  }, [currentUser]);
 
   const handleSetCreateUserDialogOpen = useCallback((isOpen: boolean) => {
     setCreateUserDialogOpen(isOpen);
@@ -76,7 +87,7 @@ export default function UsersPage() {
     }
   }, [teachers, isLoadingUsers]);
 
-  const isLoading = isLoadingUsers || hasAdminUser === null;
+  const isLoading = isLoadingUsers || isAuthUserLoading || hasAdminUser === null;
 
   const getRoleBadgeVariant = (role: UserRole) => {
     switch (role) {
@@ -162,6 +173,14 @@ export default function UsersPage() {
                 />
               </CardContent>
             </Card>
+          ) : !canManageUsers ? (
+            <div className="flex flex-col items-center justify-center h-96 text-center bg-muted/50 rounded-lg p-4">
+                <ShieldAlert className="h-12 w-12 text-destructive" />
+                <h3 className="mt-4 text-xl font-semibold">Acceso Denegado</h3>
+                <p className="mt-2 text-md text-muted-foreground">
+                    No tiene los permisos necesarios para gestionar los usuarios y roles.
+                </p>
+            </div>
           ) : (
             <>
               <div className="flex items-center justify-end gap-2">

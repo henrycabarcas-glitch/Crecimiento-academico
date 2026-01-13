@@ -7,18 +7,7 @@ import { Student, Payment, SchoolSettings } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { useSchoolSettings } from '@/hooks/use-school-settings';
 import { useStudents } from '@/hooks/use-students';
-
-
-// --- Mock Data ---
-// Use the exact same mock data as the billing page
-const paymentsData: (Payment & { id: string })[] = [
-    { id: "PAY001", studentId: "S001", date: "2024-05-01", amount: 150000, method: "Transferencia Bancaria", receiptNumber: "TR-98765", concept: "Pensión Mayo" },
-    { id: "PAY002", studentId: "S004", date: "2024-05-02", amount: 150000, method: "Efectivo", receiptNumber: "RC-11223", concept: "Pensión Mayo" },
-    { id: "PAY003", studentId: "S001", date: "2024-04-03", amount: 150000, method: "Tarjeta de Crédito", receiptNumber: "TC-45678", concept: "Pensión Abril" },
-    { id: "PAY004", studentId: "S007", date: "2024-05-05", amount: 180000, method: "Transferencia Bancaria", receiptNumber: "TR-98799", concept: "Pensión Mayo" },
-];
-
-// --- End Mock Data ---
+import { usePayments } from '@/hooks/use-payments';
 
 type ReceiptData = {
     payment: Payment | null;
@@ -32,6 +21,7 @@ export default function ReceiptPage() {
   
   const { data: schoolSettings, isLoading: isLoadingSettings } = useSchoolSettings();
   const { data: students, isLoading: isLoadingStudents } = useStudents();
+  const { getPaymentById } = usePayments();
   
   const [data, setData] = useState<ReceiptData | null>(null);
   
@@ -40,43 +30,16 @@ export default function ReceiptPage() {
   useEffect(() => {
     if (isLoading) return;
 
-    // Simulate async operation to mimic fetching from state/local storage for new payments
-    const timer = setTimeout(() => {
-        let payment: Payment | undefined = paymentsData.find(p => p.id === paymentId);
-        
-        let isNewPayment = false;
-        if (!payment) {
-            // This is a rough workaround for newly created payments. In a real app, this would be fetched from a DB
-            // or a shared state management solution like Zustand or Redux.
-            isNewPayment = true;
-            try {
-                const recentPayments = JSON.parse(localStorage.getItem('recentPayments') || '[]');
-                payment = recentPayments.find((p: Payment) => p.id === paymentId);
-            } catch (e) {
-                console.error("Could not parse recent payments from localStorage", e);
-            }
-        }
-        
-        const student = payment ? students?.find(s => s.id === payment.studentId) : null;
+    const payment = getPaymentById(paymentId);
+    const student = payment ? students?.find(s => s.id === payment.studentId) : null;
 
-        if (isNewPayment && !student && students) {
-             setData({ 
-                payment: payment || null, 
-                student: students[0], // fallback to first student
-                schoolSettings
-            });
-        } else {
-             setData({ 
-                payment: payment || null, 
-                student: student || null, 
-                schoolSettings
-            });
-        }
-    }, 50);
+    setData({ 
+        payment: payment || null, 
+        student: student || null, 
+        schoolSettings
+    });
 
-    return () => clearTimeout(timer);
-
-  }, [paymentId, schoolSettings, students, isLoading]);
+  }, [paymentId, schoolSettings, students, isLoading, getPaymentById]);
 
   if (isLoading || !data) {
     return (
