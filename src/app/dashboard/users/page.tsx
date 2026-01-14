@@ -32,7 +32,7 @@ import { useFirestore, useUser, WithId } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { CreateUserForm } from '@/components/dashboard/create-user-form';
 import { hasManagementRole } from '@/lib/auth';
-import { useTeachers } from '@/hooks/use-teachers';
+import { useUsers } from '@/hooks/use-users';
 
 
 export default function UsersPage() {
