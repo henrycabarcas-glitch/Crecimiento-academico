@@ -4,7 +4,7 @@ import { useState, useRef, useCallback } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { doc, writeBatch, collection } from 'firebase/firestore';
+import { doc, collection, setDoc } from 'firebase/firestore';
 import Image from 'next/image';
 import {
   Dialog,
